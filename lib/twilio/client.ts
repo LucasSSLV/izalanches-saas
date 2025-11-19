@@ -1,18 +1,26 @@
 import twilio from 'twilio';
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM;
+function getTwilioClient() {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-if (!accountSid || !authToken || !whatsappFrom) {
-  throw new Error('Twilio credentials are missing');
+  if (!accountSid || !authToken) {
+    throw new Error('Twilio credentials are missing');
+  }
+
+  return twilio(accountSid, authToken);
 }
-
-export const twilioClient = twilio(accountSid, authToken);
 
 export async function sendWhatsAppMessage(to: string, message: string) {
   try {
-    const result = await twilioClient.messages.create({
+    const client = getTwilioClient();
+    const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM;
+
+    if (!whatsappFrom) {
+      throw new Error('TWILIO_WHATSAPP_FROM is missing');
+    }
+
+    const result = await client.messages.create({
       from: whatsappFrom,
       to: `whatsapp:${to}`,
       body: message,

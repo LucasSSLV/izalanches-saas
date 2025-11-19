@@ -6,7 +6,6 @@ import { Order, OrderStatus } from '@/types';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import OrderCard from './OrderCard';
-import { sendWhatsAppMessage } from '@/lib/twilio/client';
 
 const STATUSES: OrderStatus[] = ['NOVO', 'EM_PREPARACAO', 'SAIU_PARA_ENTREGA', 'CONCLUIDO'];
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -107,7 +106,16 @@ export default function OrdersKanban() {
       }
 
       try {
-        await sendWhatsAppMessage(`whatsapp:${order.customer_phone}`, message);
+        await fetch('/api/twilio/send-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: order.customer_phone,
+            message: message,
+          }),
+        });
       } catch (error) {
         console.error('Error sending WhatsApp notification:', error);
       }
