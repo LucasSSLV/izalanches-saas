@@ -21,7 +21,7 @@ export function generatePIXPayload(data: PIXData): string {
   const payload: string[] = [];
 
   // Payload Format Indicator
-  payload.push('01' + String(02).padStart(2, '0'));
+  payload.push('01' + String(2).padStart(2, '0'));
 
   // Merchant Account Information
   const merchantInfo: string[] = [];
