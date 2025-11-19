@@ -61,7 +61,7 @@ export function generateESCCommands(text: string): Uint8Array {
 
 export async function printText(printer: BluetoothPrinter, text: string): Promise<void> {
   const commands = generateESCCommands(text);
-  await printer.characteristic.writeValue(commands);
+  await printer.characteristic.writeValue(commands as BufferSource);
 }
 
 // Função alternativa para impressão via Web Serial API (fallback)
