@@ -7,6 +7,11 @@ export interface BluetoothPrinter {
 
 export async function connectToPrinter(): Promise<BluetoothPrinter> {
   try {
+    // Verificar se Web Bluetooth API está disponível
+    if (!navigator.bluetooth) {
+      throw new Error('Web Bluetooth API is not available in this browser');
+    }
+
     // Solicitar dispositivo Bluetooth
     const device = await navigator.bluetooth.requestDevice({
       filters: [
