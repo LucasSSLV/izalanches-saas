@@ -65,16 +65,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers para updated_at
+DROP TRIGGER IF EXISTS update_categories_updated_at ON categories;
 CREATE TRIGGER update_categories_updated_at
   BEFORE UPDATE ON categories
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_products_updated_at ON products;
 CREATE TRIGGER update_products_updated_at
   BEFORE UPDATE ON products
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
 CREATE TRIGGER update_orders_updated_at
   BEFORE UPDATE ON orders
   FOR EACH ROW
@@ -87,6 +90,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items ENABLE ROW LEVEL SECURITY;
 
 -- Política: Todos podem ler categorias e produtos disponíveis
+DROP POLICY IF EXISTS "Public can read categories" ON categories;
 CREATE POLICY "Public can read categories" ON categories FOR SELECT USING (true);
 CREATE POLICY "Public can read available products" ON products FOR SELECT USING (available = true);
 

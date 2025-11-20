@@ -105,13 +105,32 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ Itens criados com sucesso");
 
-    // 3. Enviar notificação de confirmação via WhatsApp
-    try {
-      console.log("📱 Enviando notificação WhatsApp...");
-      const estimatedTime = "40-50 minutos";
-      const message = `✅ *Pedido Recebido - #${order.id
-        .slice(0, 8)
-        .toUpperCase()}*
+    // 3. Verificar configurações de notificação
+    console.log("🔍 Verificando configurações de notificação...");
+    const { data: settings, error: settingsError } = await supabase
+      .from("notification_settings")
+      .select("send_order_confirmation")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (settingsError) {
+      console.warn(
+        "⚠️  Aviso: Não foi possível buscar as configurações de notificação. A notificação de confirmação será enviada por padrão.",
+        settingsError
+      );
+    }
+
+    const shouldSendConfirmation = settings?.send_order_confirmation ?? true;
+
+    // 4. Enviar notificação de confirmação via WhatsApp se ativado
+    if (shouldSendConfirmation) {
+      try {
+        console.log("📱 Enviando notificação WhatsApp...");
+        const estimatedTime = "40-50 minutos";
+        const message = `✅ *Pedido Recebido - #${order.id
+          .slice(0, 8)
+          .toUpperCase()}*
 
 Olá ${body.customerName}!
 
@@ -126,27 +145,32 @@ Você receberá uma notificação quando seu pedido sair para entrega.
 
 🙏 Obrigado pela preferência!`;
 
-      const whatsappResponse = await fetch(
-        `${request.nextUrl.origin}/api/twilio/send-message`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: phoneClean,
-            message: message,
-          }),
-        }
-      );
+        const whatsappResponse = await fetch(
+          `${request.nextUrl.origin}/api/twilio/send-message`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: phoneClean,
+              message: message,
+            }),
+          }
+        );
 
-      if (!whatsappResponse.ok) {
-        console.error("⚠️ Falha ao enviar WhatsApp, mas pedido foi criado");
-      } else {
-        console.log("✅ WhatsApp enviado com sucesso");
+        if (!whatsappResponse.ok) {
+          console.error("⚠️ Falha ao enviar WhatsApp, mas pedido foi criado");
+        } else {
+          console.log("✅ WhatsApp enviado com sucesso");
+        }
+      } catch (whatsappError) {
+        console.error("⚠️ Erro ao enviar confirmação WhatsApp:", whatsappError);
+        // Não falhar a requisição se WhatsApp falhar
+        // O pedido já está salvo, isso é o mais importante
       }
-    } catch (whatsappError) {
-      console.error("⚠️ Erro ao enviar confirmação WhatsApp:", whatsappError);
-      // Não falhar a requisição se WhatsApp falhar
-      // O pedido já está salvo, isso é o mais importante
+    } else {
+      console.log(
+        "🚫 Envio de notificação de confirmação de pedido desativado."
+      );
     }
 
     console.log("🎉 Processo completo! Pedido criado com sucesso");

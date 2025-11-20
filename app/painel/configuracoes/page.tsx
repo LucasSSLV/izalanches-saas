@@ -1,39 +1,77 @@
 // app/painel/configuracoes/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { calculateMonthlySavings } from '@/lib/notifications/whatsapp';
-import { Bell, BellOff, DollarSign, MessageSquare, TrendingDown } from 'lucide-react';
+import { Bell, BellOff, DollarSign, MessageSquare, TrendingDown, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface NotificationSettings {
-    sendOrderConfirmation: boolean;
-    sendPreparationNotice: boolean;
-    sendDeliveryNotice: boolean;
-    sendCompletionNotice: boolean;
+    send_order_confirmation: boolean;
+    send_preparation_notice: boolean;
+    send_delivery_notice: boolean;
+    send_completion_notice: boolean;
 }
 
+type LoadingStatus = 'idle' | 'loading' | 'saving' | 'success' | 'error';
+
 export default function ConfiguracoesPage() {
-    const [settings, setSettings] = useState<NotificationSettings>({
-        sendOrderConfirmation: true,   // RECOMENDADO
-        sendPreparationNotice: false,  // Economia
-        sendDeliveryNotice: true,      // RECOMENDADO
-        sendCompletionNotice: false,   // Economia
-    });
-
+    const [settings, setSettings] = useState<NotificationSettings | null>(null);
     const [monthlyOrders, setMonthlyOrders] = useState(3000);
+    const [status, setStatus] = useState<LoadingStatus>('loading');
 
-    const stats = calculateMonthlySavings(monthlyOrders, settings);
+    useEffect(() => {
+        async function fetchSettings() {
+            setStatus('loading');
+            try {
+                const response = await fetch('/api/notification-settings');
+                if (!response.ok) throw new Error('Falha ao buscar configurações');
+                const data = await response.json();
+                setSettings(data);
+                setStatus('idle');
+            } catch (error) {
+                console.error(error);
+                setStatus('error');
+            }
+        }
+        fetchSettings();
+    }, []);
+
+    const stats = settings ? calculateMonthlySavings(monthlyOrders, {
+        sendOrderConfirmation: settings.send_order_confirmation,
+        sendPreparationNotice: settings.send_preparation_notice,
+        sendDeliveryNotice: settings.send_delivery_notice,
+        sendCompletionNotice: settings.send_completion_notice,
+    }) : null;
 
     function toggleSetting(key: keyof NotificationSettings) {
+        if (!settings) return;
         setSettings(prev => ({
-            ...prev,
-            [key]: !prev[key],
+            ...prev!,
+            [key]: !prev![key],
         }));
+    }
+
+    async function handleSave() {
+        if (!settings) return;
+        setStatus('saving');
+        try {
+            const response = await fetch('/api/notification-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings),
+            });
+            if (!response.ok) throw new Error('Falha ao salvar configurações');
+            setStatus('success');
+            setTimeout(() => setStatus('idle'), 2000); // Reset status after 2s
+        } catch (error) {
+            console.error(error);
+            setStatus('error');
+        }
     }
 
     const notificationOptions = [
         {
-            key: 'sendOrderConfirmation' as keyof NotificationSettings,
+            key: 'send_order_confirmation' as keyof NotificationSettings,
             title: '✅ Confirmação de Pedido',
             description: 'Enviada assim que o cliente finaliza o pedido no site',
             recommended: true,
@@ -41,7 +79,7 @@ export default function ConfiguracoesPage() {
             example: '✅ Pedido Recebido! Seu pedido #ABC123 foi confirmado...',
         },
         {
-            key: 'sendPreparationNotice' as keyof NotificationSettings,
+            key: 'send_preparation_notice' as keyof NotificationSettings,
             title: '🧑‍🍳 Pedido em Preparo',
             description: 'Enviada quando atendente move para "Em Preparação"',
             recommended: false,
@@ -49,7 +87,7 @@ export default function ConfiguracoesPage() {
             example: '🧑‍🍳 Estamos preparando seu pedido com todo carinho!',
         },
         {
-            key: 'sendDeliveryNotice' as keyof NotificationSettings,
+            key: 'send_delivery_notice' as keyof NotificationSettings,
             title: '🚚 Saiu para Entrega',
             description: 'Enviada quando pedido sai para entrega',
             recommended: true,
@@ -57,7 +95,7 @@ export default function ConfiguracoesPage() {
             example: '🚚 Seu pedido saiu para entrega! Em breve estará aí.',
         },
         {
-            key: 'sendCompletionNotice' as keyof NotificationSettings,
+            key: 'send_completion_notice' as keyof NotificationSettings,
             title: '📦 Pronto para Retirada',
             description: 'Enviada quando pedido é movido para "Concluído" (apenas retirada)',
             recommended: false,
@@ -65,6 +103,24 @@ export default function ConfiguracoesPage() {
             example: '✅ Seu pedido está pronto! Pode vir buscar.',
         },
     ];
+
+    if (status === 'loading') {
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-50">
+                <Loader2 className="animate-spin text-blue-600" size={48} />
+            </div>
+        );
+    }
+
+    if (status === 'error' || !settings) {
+        return (
+            <div className="flex flex-col justify-center items-center min-h-screen bg-gray-50 text-center">
+                <AlertTriangle className="text-red-500 mb-4" size={48} />
+                <h2 className="text-xl font-semibold text-gray-800">Erro ao carregar configurações</h2>
+                <p className="text-gray-600">Por favor, tente recarregar a página.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -77,7 +133,7 @@ export default function ConfiguracoesPage() {
                 </p>
 
                 {/* Cards de Estatísticas */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                {stats && <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                     <div className="bg-white rounded-lg shadow-md p-6">
                         <div className="flex items-center gap-2 mb-2">
                             <MessageSquare className="text-blue-600" size={24} />
@@ -97,10 +153,10 @@ export default function ConfiguracoesPage() {
                             <h3 className="text-sm font-medium text-gray-600">Custo/Mês</h3>
                         </div>
                         <p className="text-3xl font-bold text-gray-900">
-                            ${stats.costWithConfig.toFixed(2)}
+                            R$ {(stats.costWithConfig * 5.5).toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                            vs ${stats.costWithAll.toFixed(2)} (todas)
+                            vs R$ {(stats.costWithAll * 5.5).toFixed(2)} (todas)
                         </p>
                     </div>
 
@@ -110,10 +166,10 @@ export default function ConfiguracoesPage() {
                             <h3 className="text-sm font-medium text-gray-600">Economia/Mês</h3>
                         </div>
                         <p className="text-3xl font-bold text-green-600">
-                            ${stats.savings.toFixed(2)}
+                            R$ {(stats.savings * 5.5).toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                            {((stats.savings / stats.costWithAll) * 100).toFixed(0)}% de economia
+                            {stats.costWithAll > 0 ? ((stats.savings / stats.costWithAll) * 100).toFixed(0) : 0}% de economia
                         </p>
                     </div>
 
@@ -129,7 +185,7 @@ export default function ConfiguracoesPage() {
                             tipos de mensagem
                         </p>
                     </div>
-                </div>
+                </div>}
 
                 {/* Simulador */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-8">
@@ -263,13 +319,14 @@ export default function ConfiguracoesPage() {
                 {/* Botão Salvar */}
                 <div className="mt-8 flex justify-end">
                     <button
-                        onClick={() => {
-                            // Aqui você salvaria as configurações no Supabase
-                            alert('Configurações salvas! (implementar salvamento no banco)');
-                        }}
-                        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={handleSave}
+                        disabled={status === 'saving'}
+                        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-blue-400"
                     >
-                        💾 Salvar Configurações
+                        {status === 'saving' && <Loader2 className="animate-spin" size={20} />}
+                        {status === 'success' && <CheckCircle size={20} />}
+                        {status !== 'saving' && status !== 'success' && '💾 Salvar Configurações'}
+                        {status === 'success' && 'Salvo!'}
                     </button>
                 </div>
             </div>
