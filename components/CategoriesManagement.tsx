@@ -70,7 +70,7 @@ export default function CategoriesManagement() {
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Categorias</h3>
+        <h3 className="text-lg font-semibold text-black">Categorias</h3>
         <button
           onClick={() => {
             resetForm();
@@ -92,7 +92,7 @@ export default function CategoriesManagement() {
               onChange={e => setFormData({ name: e.target.value })}
               placeholder="Nome da categoria"
               required
-              className="flex-1 px-3 py-2 border rounded-lg"
+              className="flex-1 px-3 py-2 border rounded-lg placeholder:text-gray-500 text-gray-700"
             />
             <button
               type="submit"
@@ -115,7 +115,7 @@ export default function CategoriesManagement() {
         {categories.map(category => (
           <div
             key={category.id}
-            className="bg-white rounded-lg shadow-sm px-4 py-2 flex items-center gap-2"
+            className="bg-green-100 text-gray-700 rounded-lg shadow-sm px-4 py-2 flex items-center gap-2"
           >
             <span className="text-sm font-medium">{category.name}</span>
             <button

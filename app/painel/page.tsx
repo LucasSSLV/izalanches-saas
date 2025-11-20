@@ -41,7 +41,7 @@ export default function PainelPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
+      <header className="bg-yellow-700/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Painel do Atendente</h1>
@@ -49,13 +49,13 @@ export default function PainelPage() {
               <Link
                 href="/cardapio"
                 target="_blank"
-                className="text-blue-600 hover:text-blue-700"
+                className="bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 rounded-lg font-medium"
               >
                 Ver Cardápio
               </Link>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-red-600 hover:text-red-700"
+                className="px-4 py-2 text-white hover:bg-red-700 bg-red-500 rounded-lg font-medium"
               >
                 Sair
               </button>

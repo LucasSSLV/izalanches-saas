@@ -80,24 +80,24 @@ export default function FinancialReports() {
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Relatórios Financeiros</h2>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-blue-100 rounded-lg shadow-md p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Data Inicial</label>
+            <label className="block text-sm font-medium mb-1 text-black">Data Inicial</label>
             <input
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg text-black"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Data Final</label>
+            <label className="block text-sm font-medium mb-1 text-black">Data Final</label>
             <input
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3 py-2 border rounded-lg text-black"
             />
           </div>
         </div>
@@ -134,7 +134,7 @@ export default function FinancialReports() {
 
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold">Pedidos do Período</h3>
+              <h3 className="text-lg font-semibold text-blue-800">Pedidos do Período</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">

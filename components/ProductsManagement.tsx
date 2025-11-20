@@ -159,52 +159,58 @@ export default function ProductsManagement() {
       <CategoriesManagement />
 
       {showForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">
+        <div className="bg-gray-100 rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4 text-black">
             {editingProduct ? 'Editar Produto' : 'Novo Produto'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Nome</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">Nome</label>
+
               <input
                 type="text"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="w-full px-3 py-2 border rounded-lg"
+                placeholder='exemplo:Pastel de queijo'
+                className="w-full px-3 py-2 border rounded-lg placeholder:text-gray-400 text-gray-600"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Descrição</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">Descrição</label>
               <textarea
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded-lg placeholder:text-gray-400 text-gray-600"
                 rows={3}
+                placeholder='exemplo:Pastel assado com recheio de queijo minas'
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Preço</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900">Preço</label>
+
                 <input
                   type="number"
                   step="0.01"
                   value={formData.price}
                   onChange={e => setFormData({ ...formData, price: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg placeholder:text-gray-400 text-gray-600"
+                  placeholder='exemplo:8.50'
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Categoria</label>
+                <label className="block text-sm font-medium mb-1 text-gray-900">Categoria</label>
+
                 <select
                   value={formData.category_id}
                   onChange={e => setFormData({ ...formData, category_id: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-gray-900 placeholder:text-gray-400"
                 >
                   <option value="">Selecione...</option>
                   {categories.map(cat => (
@@ -217,12 +223,13 @@ export default function ProductsManagement() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Imagem</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900">Imagem</label>
+
               <input
                 type="file"
                 accept="image/*"
                 onChange={e => setFormData({ ...formData, image: e.target.files?.[0] || null })}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full px-3 py-2 border rounded-lg placeholder:text-gray-400 text-gray-600"
               />
             </div>
 
@@ -234,8 +241,8 @@ export default function ProductsManagement() {
                 onChange={e => setFormData({ ...formData, available: e.target.checked })}
                 className="w-4 h-4"
               />
-              <label htmlFor="available" className="text-sm">
-                Disponível
+              <label htmlFor="available" className="text-sm text-gray-700">
+                Disponível ?
               </label>
             </div>
 
@@ -272,19 +279,18 @@ export default function ProductsManagement() {
           <tbody className="divide-y divide-gray-200">
             {products.map(product => (
               <tr key={product.id}>
-                <td className="px-4 py-3 text-sm">{product.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-4 py-3 text-sm text-green-700">{product.name}</td>
+                <td className="px-4 py-3 text-sm text-blue-600">
                   {(product as any).category?.name || '-'}
                 </td>
-                <td className="px-4 py-3 text-sm">R$ {product.price.toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-red-700">R$ {product.price.toFixed(2)}</td>
                 <td className="px-4 py-3 text-sm">
                   <button
                     onClick={() => toggleAvailability(product)}
-                    className={`px-2 py-1 rounded text-xs ${
-                      product.available
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
+                    className={`px-2 py-1 rounded text-xs ${product.available
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-red-100 text-red-800'
+                      }`}
                   >
                     {product.available ? 'Disponível' : 'Em Falta'}
                   </button>
