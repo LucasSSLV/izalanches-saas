@@ -94,6 +94,24 @@ export default function CardapioPage() {
     return numbers.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
   }
 
+  /**
+   * Normaliza o número de telefone para o formato de 10 ou 11 dígitos (DDD + número),
+   * removendo o nono dígito de celulares se necessário para compatibilidade.
+   */
+  function normalizePhoneNumber(phone: string): string {
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    // Se o número tem 11 dígitos (DDD + 9 + número), e o nono dígito é '9'
+    if (cleanPhone.length === 11 && cleanPhone.charAt(2) === '9') {
+      // Retorna DDD + os 8 dígitos restantes, removendo o '9'
+      return cleanPhone.substring(0, 2) + cleanPhone.substring(3);
+    }
+
+    // Para números de 10 dígitos (fixo ou celular antigo) ou outros casos,
+    // retorna o número limpo como está.
+    return cleanPhone;
+  }
+
   async function handleSubmitOrder(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -109,7 +127,7 @@ export default function CardapioPage() {
       return;
     }
 
-    const phoneNumbers = customerPhone.replace(/\D/g, '');
+    const phoneNumbers = normalizePhoneNumber(customerPhone);
     if (phoneNumbers.length < 10) {
       setError('Telefone inválido. Digite com DDD');
       return;
@@ -331,7 +349,7 @@ export default function CardapioPage() {
                     {cart.map(item => (
                       <div key={item.product.id} className="flex items-center gap-3 border-b pb-3">
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{item.product.name}</p>
+                          <p className="font-medium text-sm truncate text-gray-600">{item.product.name}</p>
                           <p className="text-xs text-gray-500">
                             R$ {item.product.price.toFixed(2)} x {item.quantity}
                           </p>
@@ -340,15 +358,15 @@ export default function CardapioPage() {
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                            className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-bold"
+                            className="w-7 h-7 rounded-full bg-red-400 hover:bg-red-500 flex items-center justify-center font-bold"
                           >
                             -
                           </button>
-                          <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                          <span className="w-8 text-center font-semibold text-green-500">{item.quantity}</span>
                           <button
                             type="button"
                             onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                            className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-bold"
+                            className="w-7 h-7 rounded-full bg-blue-400 hover:bg-blue-500 flex items-center justify-center font-bold"
                           >
                             +
                           </button>
@@ -367,7 +385,7 @@ export default function CardapioPage() {
                   {/* Total */}
                   <div className="border-t pt-4 mb-4">
                     <div className="flex justify-between text-xl font-bold">
-                      <span>Total:</span>
+                      <span className='text-gray-700'>Total:</span>
                       <span className="text-green-600">R$ {getTotal().toFixed(2)}</span>
                     </div>
                   </div>
@@ -388,7 +406,7 @@ export default function CardapioPage() {
                       value={customerName}
                       onChange={e => setCustomerName(e.target.value)}
                       required
-                      className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-700 placeholder:text-gray-400"
                     />
                     <input
                       type="tel"
@@ -397,27 +415,27 @@ export default function CardapioPage() {
                       onChange={e => setCustomerPhone(formatPhone(e.target.value))}
                       required
                       maxLength={15}
-                      className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                      className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-700 placeholder:text-gray-400"
                     />
                     <textarea
                       placeholder="Endereço de entrega (opcional)"
                       value={customerAddress}
                       onChange={e => setCustomerAddress(e.target.value)}
                       rows={2}
-                      className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all"
+                      className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-all text-gray-700 placeholder:text-gray-400"
                     />
                   </div>
 
                   {/* Método de Pagamento */}
                   <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">Forma de Pagamento</label>
+                    <label className="block text-sm font-medium mb-2 text-blue-700">Forma de Pagamento</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('PIX')}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${paymentMethod === 'PIX'
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        className={`px-4 py-3 rounded-lg font-medium transition-all text-white ${paymentMethod === 'PIX'
+                            ? 'bg-green-600 text-white shadow-lg'
+                            : 'bg-green-400 text-gray-700 hover:bg-green-500'
                           }`}
                       >
                         PIX
@@ -437,14 +455,14 @@ export default function CardapioPage() {
 
                   {paymentMethod === 'DINHEIRO' && (
                     <div className="mb-4">
-                      <label className="block text-sm font-medium mb-2">Troco para quanto?</label>
+                      <label className="block text-sm font-medium mb-2 text-blue-700">Troco para quanto?</label>
                       <input
                         type="number"
                         step="0.01"
                         placeholder="Ex: 50.00"
                         value={changeAmount}
                         onChange={e => setChangeAmount(e.target.value)}
-                        className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        className="w-full px-3 py-3 border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-gray-700 placeholder:text-gray-400"
                       />
                     </div>
                   )}
