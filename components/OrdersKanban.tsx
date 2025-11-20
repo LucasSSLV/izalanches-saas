@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Order, OrderStatus } from '@/types';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import OrderCard from './OrderCard';
+import Column from './Column';
 
 const STATUSES: OrderStatus[] = ['NOVO', 'EM_PREPARACAO', 'SAIU_PARA_ENTREGA', 'CONCLUIDO'];
 
@@ -33,7 +33,10 @@ export default function OrdersKanban() {
 
   useEffect(() => {
     loadOrders();
-    subscribeToOrders();
+    const subscription = subscribeToOrders();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function loadOrders() {
@@ -48,6 +51,10 @@ export default function OrdersKanban() {
       `)
       .order('created_at', { ascending: false });
 
+    if (error) {
+      console.error('Error loading orders:', error);
+      return;
+    }
     if (data) {
       setOrders(data.map(formatOrder));
     }
@@ -63,15 +70,26 @@ export default function OrdersKanban() {
           schema: 'public',
           table: 'orders',
         },
-        () => {
-          loadOrders();
+        (payload) => {
+          console.log('Change received!', payload);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const updatedOrderRecord = payload.new as Order;
+            setOrders((prevOrders) =>
+              prevOrders.map((order) =>
+                order.id === updatedOrderRecord.id
+                  ? { ...order, status: updatedOrderRecord.status }
+                  : order
+              )
+            );
+          } else {
+            loadOrders();
+          }
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return channel;
   }
 
   function formatOrder(order: any): Order {
@@ -85,67 +103,68 @@ export default function OrdersKanban() {
     const { active, over } = event;
     setActiveId(null);
 
-    if (!over) return;
-
-    const orderId = active.id as string;
-    const newStatus = over.id as OrderStatus;
-    const order = orders.find(o => o.id === orderId);
-
-    if (!STATUSES.includes(newStatus) || !order) return;
-
-    // Se o status não mudou, não fazer nada
-    if (order.status === newStatus) return;
-
-    // Atualizar status no banco
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: newStatus })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Erro ao atualizar status:', error);
-      alert('Erro ao atualizar status do pedido');
+    if (!over || active.id === over.id) {
       return;
     }
 
-    // Recarregar pedidos
-    loadOrders();
+    const orderId = active.id as string;
+    const order = orders.find((o) => o.id === orderId);
 
-    // Enviar notificação apenas para status SAIU_PARA_ENTREGA
-    // (a confirmação já foi enviada ao criar o pedido)
-    if (newStatus === 'SAIU_PARA_ENTREGA') {
-      setSendingNotification(orderId);
+    if (!order) {
+      return;
+    }
 
-      try {
-        const message = `🚚 *Pedido Saiu para Entrega - #${order.id.slice(0, 8).toUpperCase()}*
+    let newStatus: OrderStatus;
 
-Olá ${order.customer_name}!
-
-Seu pedido está a caminho! 🎉
-
-Em breve estará aí.
-
-Aproveite! 🍔`;
-
-        const response = await fetch('/api/twilio/send-message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            to: order.customer_phone,
-            message: message,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error('Falha ao enviar notificação WhatsApp');
-        }
-      } catch (error) {
-        console.error('Erro ao enviar notificação:', error);
-      } finally {
-        setSendingNotification(null);
+    if (STATUSES.includes(over.id as OrderStatus)) {
+      newStatus = over.id as OrderStatus;
+    } else {
+      const overOrder = orders.find((o) => o.id === over.id);
+      if (overOrder) {
+        newStatus = overOrder.status;
+      } else {
+        return;
       }
+    }
+
+    if (order.status === newStatus) {
+      return;
+    }
+
+    const originalStatus = order.status;
+
+    setOrders((prevOrders) =>
+      prevOrders.map((o) =>
+        o.id === orderId ? { ...o, status: newStatus } : o
+      )
+    );
+
+    setSendingNotification(orderId);
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/update-status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Falha ao atualizar status do pedido no servidor');
+      }
+    } catch (error)
+    {
+      console.error('Erro ao chamar API de atualização de status:', error);
+      alert(`Erro ao atualizar status do pedido: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Revertendo alteração.`);
+      setOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o.id === orderId ? { ...o, status: originalStatus } : o
+        )
+      );
+    } finally {
+      setSendingNotification(null);
     }
   }
 
@@ -154,12 +173,11 @@ Aproveite! 🍔`;
   }
 
   function getOrdersByStatus(status: OrderStatus) {
-    return orders.filter(order => order.status === status);
+    return orders.filter((order) => order.status === status);
   }
 
-  const activeOrder = activeId ? orders.find(o => o.id === activeId) : null;
+  const activeOrder = activeId ? orders.find((o) => o.id === activeId) : null;
 
-  // Estatísticas
   const stats = {
     total: orders.length,
     novos: getOrdersByStatus('NOVO').length,
@@ -194,63 +212,22 @@ Aproveite! 🍔`;
         </div>
       </div>
 
-      {/* Aviso de economia */}
-      <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
-        <p className="text-sm text-blue-900">
-          💡 <strong>Sistema Otimizado:</strong> Notificações são enviadas automaticamente apenas em 2 momentos:
-          <br />
-          1️⃣ Quando o pedido é criado (confirmação)
-          <br />
-          2️⃣ Quando você move para "Saiu para Entrega"
-          <br />
-          <span className="text-blue-700">Isso economiza até 50% nos custos de WhatsApp! 💰</span>
-        </p>
-      </div>
-
       <DndContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATUSES.map(status => {
-            const statusOrders = getOrdersByStatus(status);
-            return (
-              <div key={status} className={`${STATUS_COLORS[status]} rounded-lg p-4 min-h-[600px]`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {STATUS_LABELS[status]}
-                  </h2>
-                  <span className="px-3 py-1 bg-white rounded-full text-sm font-bold text-gray-700">
-                    {statusOrders.length}
-                  </span>
-                </div>
-
-                <SortableContext
-                  items={statusOrders.map(o => o.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-3">
-                    {statusOrders.map(order => (
-                      <OrderCard
-                        key={order.id}
-                        order={order}
-                        isSendingNotification={sendingNotification === order.id}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-
-                {statusOrders.length === 0 && (
-                  <div className="text-center py-12 text-gray-400">
-                    <p className="text-sm">Nenhum pedido</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {STATUSES.map((status) => (
+            <Column
+              key={status}
+              status={status}
+              label={STATUS_LABELS[status]}
+              color={STATUS_COLORS[status]}
+              orders={getOrdersByStatus(status)}
+              sendingNotification={sendingNotification}
+            />
+          ))}
         </div>
 
         <DragOverlay>
-          {activeOrder ? (
-            <OrderCard order={activeOrder} isDragging />
-          ) : null}
+          {activeOrder ? <OrderCard order={activeOrder} isDragging /> : null}
         </DragOverlay>
       </DndContext>
     </div>
