@@ -49,6 +49,7 @@ export default function OrdersKanban() {
           product:products (*)
         )
       `)
+      .eq('is_hidden', false)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -75,15 +76,28 @@ export default function OrdersKanban() {
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (payload.eventType === 'UPDATE' && payload.new) {
             const updatedOrderRecord = payload.new as Order;
-            setOrders((prevOrders) =>
-              prevOrders.map((order) =>
-                order.id === updatedOrderRecord.id
-                  ? { ...order, status: updatedOrderRecord.status }
-                  : order
-              )
-            );
-          } else {
+            
+            // Se o pedido foi arquivado, remove-o da lista.
+            if (updatedOrderRecord.is_hidden) {
+              setOrders((prevOrders) =>
+                prevOrders.filter((order) => order.id !== updatedOrderRecord.id)
+              );
+            } else {
+              // Caso contrário, atualiza o pedido na lista.
+              setOrders((prevOrders) =>
+                prevOrders.map((order) =>
+                  order.id === updatedOrderRecord.id
+                    ? formatOrder(updatedOrderRecord)
+                    : order
+                )
+              );
+            }
+          } else if (payload.eventType === 'INSERT') {
+            // Se um novo pedido chegar, recarrega a lista.
             loadOrders();
+          } else {
+            // Para outros eventos como DELETE, também recarrega.
+            console.log('Evento não tratado diretamente, recarregando pedidos:', payload.eventType);
           }
         }
       )
@@ -95,6 +109,7 @@ export default function OrdersKanban() {
   function formatOrder(order: any): Order {
     return {
       ...order,
+      is_hidden: order.is_hidden, // Garante que o campo is_hidden seja repassado
       items: order.order_items || [],
     };
   }

@@ -4,9 +4,11 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Order } from '@/types';
-import { Printer, Loader2, Clock, MapPin, CreditCard, Banknote } from 'lucide-react';
+import { Printer, Loader2, Clock, MapPin, CreditCard, Banknote, Archive } from 'lucide-react';
 import { printReceipt } from '@/lib/bluetooth/receipt';
+import { Clickable } from './Clickable';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface OrderCardProps {
   order: Order;
@@ -16,7 +18,9 @@ interface OrderCardProps {
 
 export default function OrderCard({ order, isDragging, isSendingNotification }: OrderCardProps) {
   const [printing, setPrinting] = useState(false);
-
+  const [archiving, setArchiving] = useState(false);
+  const router = useRouter();
+  
   const {
     attributes,
     listeners,
@@ -40,6 +44,21 @@ export default function OrderCard({ order, isDragging, isSendingNotification }: 
       alert('Erro ao imprimir. Verifique se a impressora está conectada via Bluetooth.');
     } finally {
       setPrinting(false);
+    }
+  }
+
+  async function handleArchive(e: React.MouseEvent) {
+    e.stopPropagation(); // Impede que o arrastar e soltar comece ao clicar no botão
+    setArchiving(true);
+    try {
+      await fetch(`/api/orders/${order.id}/archive`, { method: 'POST' });
+      // Força a atualização da página para remover o card.
+      // A atualização em tempo real também deve funcionar, mas isso é uma garantia.
+      router.refresh();
+    } catch (error) {
+      console.error('Erro ao arquivar pedido:', error);
+      alert('Não foi possível arquivar o pedido.');
+      setArchiving(false);
     }
   }
 
@@ -71,21 +90,20 @@ export default function OrderCard({ order, isDragging, isSendingNotification }: 
           <p className="text-xs text-gray-500">{order.customer_phone}</p>
         </div>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handlePrint();
-          }}
-          disabled={printing}
-          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
-          title="Imprimir recibo"
-        >
-          {printing ? (
-            <Loader2 className="animate-spin" size={18} />
-          ) : (
-            <Printer size={18} />
-          )}
-        </button>
+        <Clickable>
+          <button
+            onClick={handlePrint}
+            disabled={printing}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded disabled:opacity-50"
+            title="Imprimir recibo"
+          >
+            {printing ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Printer size={18} />
+            )}
+          </button>
+        </Clickable>
       </div>
 
       {/* Endereço */}
@@ -143,6 +161,23 @@ export default function OrderCard({ order, isDragging, isSendingNotification }: 
           </div>
         )}
       </div>
+
+      {/* Botão de Arquivar */}
+      {order.status === 'CONCLUIDO' && (
+        <div className="mt-3 border-t pt-3">
+          <Clickable>
+            <button
+              onClick={handleArchive}
+              disabled={archiving}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+            >
+              {archiving ? <Loader2 className="animate-spin" size={14} /> : <Archive size={14} />}
+              {archiving ? 'Arquivando...' : 'Arquivar Pedido'}
+            </button>
+          </Clickable>
+        </div>
+      )}
+
 
       {/* Indicador de notificação sendo enviada */}
       {isSendingNotification && (
