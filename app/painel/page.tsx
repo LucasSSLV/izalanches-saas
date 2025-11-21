@@ -8,6 +8,9 @@ import { useRouter } from 'next/navigation';
 import OrdersKanban from '@/components/OrdersKanban';
 import ProductsManagement from '@/components/ProductsManagement';
 import FinancialReports from '@/components/FinancialReports';
+import { Config } from 'twilio/lib/twiml/VoiceResponse';
+import ConfiguracoesPage from './configuracoes/page';
+import { Cog, GalleryHorizontal, X } from 'lucide-react';
 
 type Tab = 'pedidos' | 'produtos' | 'relatorios';
 
@@ -59,6 +62,13 @@ export default function PainelPage() {
               >
                 Sair
               </button>
+              <button
+                onClick={() => router.push('/painel/configuracoes')}
+                className="px-4 py-2 text-white hover:bg-gray-700 bg-gray-500 rounded-lg font-medium"
+              >
+                <Cog size={20} />
+              </button>
+
             </div>
           </div>
         </div>
@@ -69,31 +79,28 @@ export default function PainelPage() {
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('pedidos')}
-              className={`px-4 py-3 border-b-2 transition-colors ${
-                activeTab === 'pedidos'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'pedidos'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
             >
               Pedidos
             </button>
             <button
               onClick={() => setActiveTab('produtos')}
-              className={`px-4 py-3 border-b-2 transition-colors ${
-                activeTab === 'produtos'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'produtos'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
             >
               Produtos
             </button>
             <button
               onClick={() => setActiveTab('relatorios')}
-              className={`px-4 py-3 border-b-2 transition-colors ${
-                activeTab === 'relatorios'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
+              className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'relatorios'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
             >
               Relatórios Financeiros
             </button>

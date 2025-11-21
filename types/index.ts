@@ -1,8 +1,12 @@
 // Tipos principais do sistema
 
-export type PaymentMethod = 'PIX' | 'DINHEIRO';
+export type PaymentMethod = "PIX" | "DINHEIRO";
 
-export type OrderStatus = 'NOVO' | 'EM_PREPARACAO' | 'SAIU_PARA_ENTREGA' | 'CONCLUIDO';
+export type OrderStatus =
+  | "NOVO"
+  | "EM_PREPARACAO"
+  | "SAIU_PARA_ENTREGA"
+  | "CONCLUIDO";
 
 export interface Product {
   id: string;
@@ -44,6 +48,7 @@ export interface Order {
   pix_qr_code?: string; // Para pagamento via PIX
   created_at: string;
   updated_at: string;
+  is_hidden: boolean;
 }
 
 export interface FinancialReport {
@@ -55,4 +60,3 @@ export interface FinancialReport {
   cash_revenue: number;
   orders: Order[];
 }
-
