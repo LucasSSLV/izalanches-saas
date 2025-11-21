@@ -281,25 +281,25 @@ export default function ConfiguracoesPage() {
                         💡 Nossa Recomendação (Melhor Custo-Benefício)
                     </h3>
                     <ul className="space-y-2">
-                        <li className="flex items-start gap-2">
+                        <li className="flex items-start gap-2 text-gray-800">
                             <span className="text-green-600 mt-1">✅</span>
                             <div>
                                 <strong>Confirmação de Pedido:</strong> ATIVAR - Cliente precisa saber que pedido foi recebido
                             </div>
                         </li>
-                        <li className="flex items-start gap-2">
+                        <li className="flex items-start gap-2 text-gray-800">
                             <span className="text-red-600 mt-1">❌</span>
                             <div>
                                 <strong>Pedido em Preparo:</strong> DESATIVAR - Economiza custos sem prejudicar experiência
                             </div>
                         </li>
-                        <li className="flex items-start gap-2">
+                        <li className="flex items-start gap-2 text-gray-800">
                             <span className="text-green-600 mt-1">✅</span>
                             <div>
                                 <strong>Saiu para Entrega:</strong> ATIVAR - Cliente precisa se preparar para receber
                             </div>
                         </li>
-                        <li className="flex items-start gap-2">
+                        <li className="flex items-start gap-2 text-gray-800">
                             <span className="text-red-600 mt-1">❌</span>
                             <div>
                                 <strong>Pronto para Retirada:</strong> DESATIVAR - Use apenas se tiver muita retirada no local
