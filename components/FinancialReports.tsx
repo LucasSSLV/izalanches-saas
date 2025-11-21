@@ -6,7 +6,7 @@ import { Order, FinancialReport } from '@/types';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export default function FinancialReports() {
+export default function FinancialReports({ activeTab }: { activeTab?: string }) {
   const [startDate, setStartDate] = useState(
     format(new Date(), 'yyyy-MM-dd')
   );
@@ -20,7 +20,8 @@ export default function FinancialReports() {
 
   useEffect(() => {
     loadReport();
-  }, [startDate, endDate]);
+    // Recarrega o relatório sempre que a aba se tornar ativa ou as datas mudarem
+  }, [startDate, endDate, activeTab]);
 
   async function loadReport() {
     setLoading(true);
@@ -201,4 +202,3 @@ export default function FinancialReports() {
     </div>
   );
 }
-

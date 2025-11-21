@@ -111,9 +111,8 @@ export default function PainelPage() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {activeTab === 'pedidos' && <OrdersKanban />}
         {activeTab === 'produtos' && <ProductsManagement />}
-        {activeTab === 'relatorios' && <FinancialReports />}
+        {activeTab === 'relatorios' && <FinancialReports activeTab={activeTab} />}
       </main>
     </div>
   );
 }
-
