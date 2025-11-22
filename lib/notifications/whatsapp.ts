@@ -15,6 +15,44 @@ export const DEFAULT_CONFIG: NotificationConfig = {
   sendCompletionNotice: false, // OPCIONAL - só se for retirada
 };
 
+const WHATSAPP_TEMPLATES = {
+  sendOrderConfirmation: {
+    // Exemplo de corpo do template:
+    // Olá {{1}}! Seu pedido #{{2}} foi recebido. Total: R$ {{3}}. Pagamento: {{4}}.
+    contentSid: process.env.TWILIO_ORDER_CONFIRMATION_SID, // <-- SUBSTITUIR
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+      "3": data.total.toFixed(2),
+      "4": data.paymentMethod,
+    }),
+  },
+  sendPreparationNotice: {
+    // Exemplo: Olá {{1}}! Seu pedido #{{2}} já está em preparo.
+    contentSid: process.env.TWILIO_ORDER_STATUS_PREPARING_SID, // <-- SUBSTITUIR
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+    }),
+  },
+  sendDeliveryNotice: {
+    // Exemplo: Olá {{1}}! Seu pedido #{{2}} saiu para entrega.
+    contentSid: process.env.TWILIO_ORDER_STATUS_OUT_FOR_DELIVERY_SID, // <-- SUBSTITUIR
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+    }),
+  },
+  sendCompletionNotice: {
+    // Exemplo: Olá {{1}}! Seu pedido #{{2}} está pronto para retirada.
+    contentSid: process.env.TWILIO_ORDER_STATUS_COMPLETED_SID, // <-- SUBSTITUIR
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+    }),
+  },
+};
+
 export async function sendOrderNotification(
   phone: string,
   type: keyof NotificationConfig,
@@ -26,84 +64,49 @@ export async function sendOrderNotification(
     estimatedTime?: string;
   }
 ) {
-  // Verificar se tipo de notificação está habilitado
+  // 1. Verificar se o tipo de notificação está habilitado
   if (!DEFAULT_CONFIG[type]) {
-    console.log(`Notificação ${type} desabilitada (economia de custos)`);
+    console.log(
+      `Skipping notification: '${type}' is disabled for cost savings.`
+    );
     return null;
   }
 
-  const messages = {
-    sendOrderConfirmation: `✅ *Pedido Recebido - #${data.orderId.slice(0, 8)}*
+  // 2. Obter o template e as variáveis corretas
+  const templateConfig = WHATSAPP_TEMPLATES[type];
+  if (!templateConfig) {
+    console.error(`Error: WhatsApp template for '${type}' not found.`);
+    return null;
+  }
 
-Olá ${data.customerName}!
-
-Seu pedido foi confirmado com sucesso! 🍔
-
-📋 *Resumo:*
-💰 Total: R$ ${data.total.toFixed(2)}
-💳 Pagamento: ${data.paymentMethod}
-${data.estimatedTime ? `⏱️ Tempo estimado: ${data.estimatedTime}` : ""}
-
-Você receberá uma notificação quando seu pedido sair para entrega.
-
-🙏 Obrigado pela preferência!`,
-
-    sendPreparationNotice: `🧑‍🍳 *Pedido em Preparo - #${data.orderId.slice(
-      0,
-      8
-    )}*
-
-Olá ${data.customerName}!
-
-Estamos preparando seu pedido com todo carinho! 
-
-Em breve você receberá mais atualizações.`,
-
-    sendDeliveryNotice: `🚚 *Pedido Saiu para Entrega - #${data.orderId.slice(
-      0,
-      8
-    )}*
-
-Olá ${data.customerName}!
-
-Seu pedido saiu para entrega! 🎉
-
-Em breve estará aí.
-
-Aproveite! 🍔`,
-
-    sendCompletionNotice: `✅ *Pedido Pronto para Retirada - #${data.orderId.slice(
-      0,
-      8
-    )}*
-
-Olá ${data.customerName}!
-
-Seu pedido está pronto! 
-
-Pode vir buscar quando quiser.
-
-Te esperamos! 😊`,
-  };
+  const contentSid = templateConfig.contentSid;
+  const contentVariables = templateConfig.getVariables(data);
 
   try {
+    // 3. Enviar para a API usando o formato de template
     const response = await fetch("/api/twilio/send-message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: phone,
-        message: messages[type],
+        template: {
+          contentSid,
+          contentVariables,
+        },
       }),
     });
 
     if (!response.ok) {
-      throw new Error("Falha ao enviar notificação");
+      const errorBody = await response.json();
+      throw new Error(
+        `Failed to send notification: ${errorBody.error || response.statusText}`
+      );
     }
 
-    console.log(`✅ Notificação ${type} enviada para ${phone}`);
+    console.log(`✅ Template notification '${type}' sent to ${phone}`);
     return await response.json();
   } catch (error) {
-    console.error(`❌ Erro ao enviar ${type}:`, error);
+    console.error(`❌ Error sending template '${type}':`, error);
     return null;
   }
 }

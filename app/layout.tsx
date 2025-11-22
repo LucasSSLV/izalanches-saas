@@ -13,8 +13,12 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SAAS Iza - Sistema de Gestão para Lanchonete",
+  title: " - Sistema de Gestão para Lanchonete",
   description: "Sistema completo de gestão de pedidos, cardápio digital e relatórios financeiros",
+  icons: {
+    icon: "/icon.saas.svh",
+  },
+
 };
 
 export default function RootLayout({

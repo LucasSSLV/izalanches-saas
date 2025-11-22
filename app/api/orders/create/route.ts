@@ -125,51 +125,82 @@ export async function POST(request: NextRequest) {
 
     // 4. Enviar notificação de confirmação via WhatsApp se ativado
     if (shouldSendConfirmation) {
-      try {
-        console.log("📱 Enviando notificação WhatsApp...");
-        const estimatedTime = "40-50 minutos";
-        const message = `✅ *Pedido Recebido - #${order.id
-          .slice(0, 8)
-          .toUpperCase()}*
+      console.log("📱 Enviando notificação WhatsApp via Template...");
 
-Olá ${body.customerName}!
+      // Busca os nomes dos produtos para o resumo do pedido
+      const productIds = body.items.map((item) => item.productId);
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, name")
+        .in("id", productIds);
 
-Seu pedido foi confirmado com sucesso! 🍔
+      if (productsError) {
+        console.warn(
+          "⚠️  Aviso: Não foi possível buscar os nomes dos produtos para a notificação. O resumo será genérico.",
+          productsError,
+        );
+      }
 
-📋 *Resumo:*
-💰 Total: R$ ${body.total.toFixed(2)}
-💳 Pagamento: ${body.paymentMethod}
-⏱️ Tempo estimado: ${estimatedTime}
+      const productNames =
+        products?.reduce(
+          (acc, product) => {
+            acc[product.id] = product.name;
+            return acc;
+          },
+          {} as Record<string, string>,
+        ) ?? {};
 
-Você receberá uma notificação quando seu pedido sair para entrega.
+      const itemsSummary = body.items
+        .map(
+          (item) =>
+            `${item.quantity}x ${
+              productNames[item.productId] || "Produto"
+            }`,
+        )
+        .join(", ");
 
-🙏 Obrigado pela preferência!`;
+      // TENTATIVA 2: Adaptação para o template de sandbox mais comum (2 variáveis).
+      // Ex: "Seu pedido {{1}} no valor de {{2}} foi confirmado."
+      // O ideal é o usuário verificar o texto exato do template na Twilio ou usar um template customizado (SID começando com 'H').
+      const contentSid = process.env.TWILIO_ORDER_CONFIRMATION_SID;
 
-        const whatsappResponse = await fetch(
-          `${request.nextUrl.origin}/api/twilio/send-message`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              to: phoneClean,
-              message: message,
-            }),
-          }
+      if (!contentSid) {
+        console.error(
+          "❌ Erro: A variável de ambiente TWILIO_ORDER_CONFIRMATION_SID não está definida. Não é possível enviar a notificação de confirmação.",
+        );
+      } else {
+        const contentVariables = {
+          "1": body.customerName,
+          "2": order.id.slice(0, 8).toUpperCase(),
+          "3": itemsSummary,
+          "4": body.total.toFixed(2).replace(".", ","),
+        };
+
+        // Dispara a notificação em background (fire-and-forget)
+        fetch(`${request.nextUrl.origin}/api/twilio/send-message`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: phoneClean,
+            template: {
+              contentSid,
+              contentVariables,
+            },
+          }),
+        }).catch((e) =>
+          console.error(
+            "⚠️ Erro ao disparar notificação WhatsApp em background:",
+            e,
+          ),
         );
 
-        if (!whatsappResponse.ok) {
-          console.error("⚠️ Falha ao enviar WhatsApp, mas pedido foi criado");
-        } else {
-          console.log("✅ WhatsApp enviado com sucesso");
-        }
-      } catch (whatsappError) {
-        console.error("⚠️ Erro ao enviar confirmação WhatsApp:", whatsappError);
-        // Não falhar a requisição se WhatsApp falhar
-        // O pedido já está salvo, isso é o mais importante
+        console.log(
+          "✅ Disparo de notificação WhatsApp iniciado em background.",
+        );
       }
     } else {
       console.log(
-        "🚫 Envio de notificação de confirmação de pedido desativado."
+        "🚫 Envio de notificação de confirmação de pedido desativado.",
       );
     }
 
