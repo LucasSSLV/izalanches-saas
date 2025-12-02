@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (template) {
       // Usa o Message Template
       messagePayload.contentSid = template.contentSid;
-      messagePayload.contentVariables = JSON.stringify(template.contentVariables);
+      messagePayload.contentVariables = template.contentVariables;
       console.log("🚀 Enviando MENSAGEM DE TEMPLATE via Twilio...");
     } else {
       // Usa a mensagem de formato livre

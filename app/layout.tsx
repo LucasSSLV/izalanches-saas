@@ -13,10 +13,10 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: " - Sistema de Gestão para Lanchonete",
+  title: "Pede Aí - Sistema de Pedidos",
   description: "Sistema completo de gestão de pedidos, cardápio digital e relatórios financeiros",
   icons: {
-    icon: "/icon.saas.svh",
+    icon: "/icon-pedeAi.png",
   },
 
 };

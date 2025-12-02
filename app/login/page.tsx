@@ -37,7 +37,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Login - Painel do Atendente</h1>
+        <h1 className="text-2xl text-center font-bold text-gray-900 mb-6">Pede Aí</h1>
         
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">

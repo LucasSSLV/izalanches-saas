@@ -84,7 +84,10 @@ export async function sendOrderNotification(
 
   try {
     // 3. Enviar para a API usando o formato de template
-    const response = await fetch("/api/twilio/send-message", {
+    const domain = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const url = new URL("/api/twilio/send-message", domain);
+
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
