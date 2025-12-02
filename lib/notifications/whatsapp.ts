@@ -1,25 +1,23 @@
 // lib/notifications/whatsapp.ts
+import { sendWhatsAppTemplate } from "@/lib/twilio/client";
 
 export interface NotificationConfig {
-  sendOrderConfirmation: boolean; // ✅ Pedido recebido
-  sendPreparationNotice: boolean; // 🧑‍🍳 Em preparo
-  sendDeliveryNotice: boolean; // 🚚 Saiu para entrega
-  sendCompletionNotice: boolean; // ✅ Concluído (opcional)
+  sendOrderConfirmation: boolean;
+  sendPreparationNotice: boolean;
+  sendDeliveryNotice: boolean;
+  sendCompletionNotice: boolean;
 }
 
-// Configuração padrão (recomendada para economia)
 export const DEFAULT_CONFIG: NotificationConfig = {
-  sendOrderConfirmation: true, // ESSENCIAL - cliente sabe que pedido foi recebido
-  sendPreparationNotice: false, // OPCIONAL - pode economizar
-  sendDeliveryNotice: true, // ESSENCIAL - cliente sabe que está a caminho
-  sendCompletionNotice: false, // OPCIONAL - só se for retirada
+  sendOrderConfirmation: true,
+  sendPreparationNotice: true,
+  sendDeliveryNotice: true,
+  sendCompletionNotice: true,
 };
 
 const WHATSAPP_TEMPLATES = {
   sendOrderConfirmation: {
-    // Exemplo de corpo do template:
-    // Olá {{1}}! Seu pedido #{{2}} foi recebido. Total: R$ {{3}}. Pagamento: {{4}}.
-    contentSid: process.env.TWILIO_ORDER_CONFIRMATION_SID, // <-- SUBSTITUIR
+    contentSid: process.env.TWILIO_ORDER_CONFIRMATION_SID,
     getVariables: (data: any) => ({
       "1": data.customerName,
       "2": data.orderId.slice(0, 8).toUpperCase(),
@@ -28,24 +26,21 @@ const WHATSAPP_TEMPLATES = {
     }),
   },
   sendPreparationNotice: {
-    // Exemplo: Olá {{1}}! Seu pedido #{{2}} já está em preparo.
-    contentSid: process.env.TWILIO_ORDER_STATUS_PREPARING_SID, // <-- SUBSTITUIR
+    contentSid: process.env.TWILIO_ORDER_STATUS_PREPARING_SID,
     getVariables: (data: any) => ({
       "1": data.customerName,
       "2": data.orderId.slice(0, 8).toUpperCase(),
     }),
   },
   sendDeliveryNotice: {
-    // Exemplo: Olá {{1}}! Seu pedido #{{2}} saiu para entrega.
-    contentSid: process.env.TWILIO_ORDER_STATUS_OUT_FOR_DELIVERY_SID, // <-- SUBSTITUIR
+    contentSid: process.env.TWILIO_ORDER_STATUS_OUT_FOR_DELIVERY_SID,
     getVariables: (data: any) => ({
       "1": data.customerName,
       "2": data.orderId.slice(0, 8).toUpperCase(),
     }),
   },
   sendCompletionNotice: {
-    // Exemplo: Olá {{1}}! Seu pedido #{{2}} está pronto para retirada.
-    contentSid: process.env.TWILIO_ORDER_STATUS_COMPLETED_SID, // <-- SUBSTITUIR
+    contentSid: process.env.TWILIO_ORDER_STATUS_COMPLETED_SID,
     getVariables: (data: any) => ({
       "1": data.customerName,
       "2": data.orderId.slice(0, 8).toUpperCase(),
@@ -64,10 +59,15 @@ export async function sendOrderNotification(
     estimatedTime?: string;
   }
 ) {
+  console.log(`\n🔔 ========== INICIANDO ENVIO DE NOTIFICAÇÃO ==========`);
+  console.log(`   Tipo: ${type}`);
+  console.log(`   Telefone: ${phone}`);
+  console.log(`   Dados:`, data);
+
   // 1. Verificar se o tipo de notificação está habilitado
   if (!DEFAULT_CONFIG[type]) {
     console.log(
-      `Skipping notification: '${type}' is disabled for cost savings.`
+      `⏭️ Skipping notification: '${type}' is disabled for cost savings.`
     );
     return null;
   }
@@ -75,53 +75,58 @@ export async function sendOrderNotification(
   // 2. Obter o template e as variáveis corretas
   const templateConfig = WHATSAPP_TEMPLATES[type];
   if (!templateConfig) {
-    console.error(`Error: WhatsApp template for '${type}' not found.`);
+    console.error(`❌ Error: WhatsApp template for '${type}' not found.`);
     return null;
   }
 
   const contentSid = templateConfig.contentSid;
+
+  console.log(`📋 ContentSid obtido: "${contentSid}"`);
+  console.log(`   Tipo: ${typeof contentSid}`);
+  console.log(`   Definido: ${contentSid ? "SIM" : "NÃO"}`);
+
+  // VERIFICAÇÃO IMPORTANTE: Checar se o contentSid está definido
+  if (!contentSid) {
+    console.error(
+      `❌ Error: ContentSid for '${type}' is undefined. Check your environment variables.`
+    );
+    return null;
+  }
+
   const contentVariables = templateConfig.getVariables(data);
 
-  try {
-    // 3. Enviar para a API usando o formato de template
-    const domain = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const url = new URL("/api/twilio/send-message", domain);
+  console.log(`📤 Preparando envio de notificação:`);
+  console.log(`   ContentSid: ${contentSid}`);
+  console.log(`   Variables:`, JSON.stringify(contentVariables, null, 2));
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: phone,
-        template: {
-          contentSid,
-          contentVariables,
-        },
-      }),
+  try {
+    // 3. Chamar o Twilio diretamente
+    const result = await sendWhatsAppTemplate({
+      to: phone,
+      contentSid,
+      contentVariables,
     });
 
-    if (!response.ok) {
-      const errorBody = await response.json();
-      throw new Error(
-        `Failed to send notification: ${errorBody.error || response.statusText}`
-      );
-    }
-
     console.log(`✅ Template notification '${type}' sent to ${phone}`);
-    return await response.json();
+    console.log(`✅ Result:`, JSON.stringify(result, null, 2));
+    console.log(`========== FIM DO ENVIO DE NOTIFICAÇÃO ==========\n`);
+    return result;
   } catch (error) {
     console.error(`❌ Error sending template '${type}':`, error);
+    if (error instanceof Error) {
+      console.error(`❌ Error message:`, error.message);
+    }
+    console.log(`========== ERRO NO ENVIO DE NOTIFICAÇÃO ==========\n`);
     return null;
   }
 }
 
-// Função auxiliar para calcular tempo estimado
 export function calculateEstimatedTime(
   orderType: "ENTREGA" | "RETIRADA"
 ): string {
   return orderType === "ENTREGA" ? "40-50 minutos" : "20-30 minutos";
 }
 
-// Estatísticas de economia
 export function calculateMonthlySavings(
   monthlyOrders: number,
   currentConfig: NotificationConfig = DEFAULT_CONFIG
@@ -132,13 +137,11 @@ export function calculateMonthlySavings(
   costWithConfig: number;
   savings: number;
 } {
-  const MESSAGE_COST = 0.005; // USD por mensagem
+  const MESSAGE_COST = 0.005;
 
-  // Cenário: todas notificações ativas
-  const messagesWithAll = monthlyOrders * 4; // confirmação + preparo + entrega + conclusão
+  const messagesWithAll = monthlyOrders * 4;
   const costWithAll = messagesWithAll * MESSAGE_COST;
 
-  // Cenário: config otimizada
   let messagesPerOrder = 0;
   if (currentConfig.sendOrderConfirmation) messagesPerOrder++;
   if (currentConfig.sendPreparationNotice) messagesPerOrder++;
@@ -156,7 +159,3 @@ export function calculateMonthlySavings(
     savings: costWithAll - costWithConfig,
   };
 }
-
-// Exemplo de uso:
-// const stats = calculateMonthlySavings(3000); // 3000 pedidos/mês
-// console.log(`Economia mensal: $${stats.savings.toFixed(2)}`);
