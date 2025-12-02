@@ -5,6 +5,7 @@ import { OrderStatus } from "@/types";
 import {
   sendOrderNotification,
   NotificationConfig,
+  DEFAULT_CONFIG,
 } from "@/lib/notifications/whatsapp";
 
 const STATUSES: OrderStatus[] = [
@@ -18,14 +19,43 @@ interface UpdateStatusRequest {
   status: OrderStatus;
 }
 
+/**
+ * Busca a configuração de notificações do banco de dados.
+ */
+async function getNotificationConfig(): Promise<NotificationConfig> {
+  try {
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+      .from("notification_settings")
+      .select("*")
+      .single();
+
+    if (error || !data) {
+      console.log("⚙️ Usando configuração padrão (não encontrada no banco)");
+      return DEFAULT_CONFIG;
+    }
+
+    console.log("⚙️ Configuração carregada do banco:", data);
+    
+    return {
+      sendOrderConfirmation: data.send_order_confirmation ?? DEFAULT_CONFIG.sendOrderConfirmation,
+      sendPreparationNotice: data.send_preparation_notice ?? DEFAULT_CONFIG.sendPreparationNotice,
+      sendDeliveryNotice: data.send_delivery_notice ?? DEFAULT_CONFIG.sendDeliveryNotice,
+      sendCompletionNotice: data.send_completion_notice ?? DEFAULT_CONFIG.sendCompletionNotice,
+    };
+  } catch (error) {
+    console.error("❌ Erro ao buscar configuração de notificações:", error);
+    return DEFAULT_CONFIG;
+  }
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const pathname = request.nextUrl.pathname;
-    const segments = pathname.split("/");
-    const orderId = segments[3];
+    const { id: orderId } = await params;
     console.log(`🔥 API /api/orders/${orderId}/update-status chamada!`);
 
     const body: UpdateStatusRequest = await request.json();
@@ -77,7 +107,10 @@ export async function POST(
     }
     console.log("✅ Status do pedido atualizado com sucesso.");
 
-    // 3. Enviar notificação de mudança de status usando o template correto
+    // 3. Buscar configurações de notificação
+    const notificationConfig = await getNotificationConfig();
+
+    // 4. Enviar notificação de mudança de status usando o template correto
     const statusToNotificationType: {
       [key in OrderStatus]?: keyof NotificationConfig;
     } = {
@@ -92,14 +125,17 @@ export async function POST(
       console.log(
         `📱 Disparando notificação de template para o status '${newStatus}'...`
       );
-      // A função sendOrderNotification já verifica internamente se a notificação
-      // está habilitada nas configurações, então não precisamos de um 'if' aqui.
-      await sendOrderNotification(order.customer_phone, notificationType, {
-        orderId: order.id,
-        customerName: order.customer_name,
-        total: order.total,
-        paymentMethod: order.payment_method,
-      });
+      await sendOrderNotification(
+        order.customer_phone,
+        notificationType,
+        {
+          orderId: order.id,
+          customerName: order.customer_name,
+          total: order.total,
+          paymentMethod: order.payment_method,
+        },
+        notificationConfig // <- Passa a config do banco
+      );
     } else {
       console.log(
         `ℹ️ Nenhuma notificação por template configurada para o status '${newStatus}'.`

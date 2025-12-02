@@ -8,6 +8,7 @@ export interface NotificationConfig {
   sendCompletionNotice: boolean;
 }
 
+// Configuração padrão (fallback)
 export const DEFAULT_CONFIG: NotificationConfig = {
   sendOrderConfirmation: true,
   sendPreparationNotice: true,
@@ -57,17 +58,19 @@ export async function sendOrderNotification(
     total: number;
     paymentMethod: string;
     estimatedTime?: string;
-  }
+  },
+  config: NotificationConfig = DEFAULT_CONFIG // <- Recebe como parâmetro
 ) {
   console.log(`\n🔔 ========== INICIANDO ENVIO DE NOTIFICAÇÃO ==========`);
   console.log(`   Tipo: ${type}`);
   console.log(`   Telefone: ${phone}`);
   console.log(`   Dados:`, data);
+  console.log(`   Config:`, config);
 
   // 1. Verificar se o tipo de notificação está habilitado
-  if (!DEFAULT_CONFIG[type]) {
+  if (!config[type]) {
     console.log(
-      `⏭️ Skipping notification: '${type}' is disabled for cost savings.`
+      `⏭️ Notificação '${type}' desabilitada nas configurações. Pulando envio.`
     );
     return null;
   }
