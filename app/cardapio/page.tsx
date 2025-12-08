@@ -262,7 +262,7 @@ export default function CardapioPage() {
             onClick={() => setSelectedCategory(null)}
             className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${selectedCategory === null
                 ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-100'
               }`}
           >
             Todos
