@@ -35,8 +35,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+    <div className="min-h-screen flex items-center justify-center " style={{backgroundImage: 'url(/fundo-login.png)', backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'}}>
+      <div className="max-w-md w-full rounded-lg shadow-md p-8 bg-orange-100/90">
         <h1 className="text-2xl text-center font-bold text-gray-900 mb-6">Pede Aí</h1>
         
         {error && (

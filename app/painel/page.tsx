@@ -44,17 +44,17 @@ export default function PainelPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-yellow-700/50 shadow-sm">
+      <header className="bg-red-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Painel do Atendente</h1>
+            <h1 className="text-4xl font-bold text-gray-100">Painel do Atendente</h1>
             <div className="flex items-center gap-4">
               <Link
                 href="/cardapio"
                 target="_blank"
-                className="bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 rounded-lg font-medium"
+                className="bg-green-500/60 text-white hover:bg-green-600 px-4 py-2 rounded-lg font-medium"
               >
-                Ver Cardápio
+                Cardápio
               </Link>
               <button
                 onClick={handleLogout}
@@ -74,32 +74,32 @@ export default function PainelPage() {
         </div>
       </header>
 
-      <nav className="bg-white border-b">
+      <nav className="bg-gray-800/95 border-b">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('pedidos')}
-              className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'pedidos'
+              className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'pedidos'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-100 hover:text-gray-900'
                 }`}
             >
               Pedidos
             </button>
             <button
               onClick={() => setActiveTab('produtos')}
-              className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'produtos'
+              className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'produtos'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-100 hover:text-gray-900'
                 }`}
             >
               Produtos
             </button>
             <button
               onClick={() => setActiveTab('relatorios')}
-              className={`px-4 py-3 border-b-2 transition-colors ${activeTab === 'relatorios'
+              className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'relatorios'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-gray-100 hover:text-gray-900'
                 }`}
             >
               Relatórios Financeiros
