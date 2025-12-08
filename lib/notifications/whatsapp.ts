@@ -1,18 +1,52 @@
 // lib/notifications/whatsapp.ts
+import { sendWhatsAppTemplate } from "@/lib/twilio/client";
 
 export interface NotificationConfig {
-  sendOrderConfirmation: boolean; // ✅ Pedido recebido
-  sendPreparationNotice: boolean; // 🧑‍🍳 Em preparo
-  sendDeliveryNotice: boolean; // 🚚 Saiu para entrega
-  sendCompletionNotice: boolean; // ✅ Concluído (opcional)
+  sendOrderConfirmation: boolean;
+  sendPreparationNotice: boolean;
+  sendDeliveryNotice: boolean;
+  sendCompletionNotice: boolean;
 }
 
-// Configuração padrão (recomendada para economia)
+// Configuração padrão (fallback)
 export const DEFAULT_CONFIG: NotificationConfig = {
-  sendOrderConfirmation: true, // ESSENCIAL - cliente sabe que pedido foi recebido
-  sendPreparationNotice: false, // OPCIONAL - pode economizar
-  sendDeliveryNotice: true, // ESSENCIAL - cliente sabe que está a caminho
-  sendCompletionNotice: false, // OPCIONAL - só se for retirada
+  sendOrderConfirmation: true,
+  sendPreparationNotice: true,
+  sendDeliveryNotice: true,
+  sendCompletionNotice: true,
+};
+
+const WHATSAPP_TEMPLATES = {
+  sendOrderConfirmation: {
+    contentSid: process.env.TWILIO_ORDER_CONFIRMATION_SID,
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+      "3": data.total.toFixed(2),
+      "4": data.paymentMethod,
+    }),
+  },
+  sendPreparationNotice: {
+    contentSid: process.env.TWILIO_ORDER_STATUS_PREPARING_SID,
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+    }),
+  },
+  sendDeliveryNotice: {
+    contentSid: process.env.TWILIO_ORDER_STATUS_OUT_FOR_DELIVERY_SID,
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+    }),
+  },
+  sendCompletionNotice: {
+    contentSid: process.env.TWILIO_ORDER_STATUS_COMPLETED_SID,
+    getVariables: (data: any) => ({
+      "1": data.customerName,
+      "2": data.orderId.slice(0, 8).toUpperCase(),
+    }),
+  },
 };
 
 export async function sendOrderNotification(
@@ -24,98 +58,78 @@ export async function sendOrderNotification(
     total: number;
     paymentMethod: string;
     estimatedTime?: string;
-  }
+  },
+  config: NotificationConfig = DEFAULT_CONFIG // <- Recebe como parâmetro
 ) {
-  // Verificar se tipo de notificação está habilitado
-  if (!DEFAULT_CONFIG[type]) {
-    console.log(`Notificação ${type} desabilitada (economia de custos)`);
+  console.log(`\n🔔 ========== INICIANDO ENVIO DE NOTIFICAÇÃO ==========`);
+  console.log(`   Tipo: ${type}`);
+  console.log(`   Telefone: ${phone}`);
+  console.log(`   Dados:`, data);
+  console.log(`   Config:`, config);
+
+  // 1. Verificar se o tipo de notificação está habilitado
+  if (!config[type]) {
+    console.log(
+      `⏭️ Notificação '${type}' desabilitada nas configurações. Pulando envio.`
+    );
     return null;
   }
 
-  const messages = {
-    sendOrderConfirmation: `✅ *Pedido Recebido - #${data.orderId.slice(0, 8)}*
+  // 2. Obter o template e as variáveis corretas
+  const templateConfig = WHATSAPP_TEMPLATES[type];
+  if (!templateConfig) {
+    console.error(`❌ Error: WhatsApp template for '${type}' not found.`);
+    return null;
+  }
 
-Olá ${data.customerName}!
+  const contentSid = templateConfig.contentSid;
 
-Seu pedido foi confirmado com sucesso! 🍔
+  console.log(`📋 ContentSid obtido: "${contentSid}"`);
+  console.log(`   Tipo: ${typeof contentSid}`);
+  console.log(`   Definido: ${contentSid ? "SIM" : "NÃO"}`);
 
-📋 *Resumo:*
-💰 Total: R$ ${data.total.toFixed(2)}
-💳 Pagamento: ${data.paymentMethod}
-${data.estimatedTime ? `⏱️ Tempo estimado: ${data.estimatedTime}` : ""}
+  // VERIFICAÇÃO IMPORTANTE: Checar se o contentSid está definido
+  if (!contentSid) {
+    console.error(
+      `❌ Error: ContentSid for '${type}' is undefined. Check your environment variables.`
+    );
+    return null;
+  }
 
-Você receberá uma notificação quando seu pedido sair para entrega.
+  const contentVariables = templateConfig.getVariables(data);
 
-🙏 Obrigado pela preferência!`,
-
-    sendPreparationNotice: `🧑‍🍳 *Pedido em Preparo - #${data.orderId.slice(
-      0,
-      8
-    )}*
-
-Olá ${data.customerName}!
-
-Estamos preparando seu pedido com todo carinho! 
-
-Em breve você receberá mais atualizações.`,
-
-    sendDeliveryNotice: `🚚 *Pedido Saiu para Entrega - #${data.orderId.slice(
-      0,
-      8
-    )}*
-
-Olá ${data.customerName}!
-
-Seu pedido saiu para entrega! 🎉
-
-Em breve estará aí.
-
-Aproveite! 🍔`,
-
-    sendCompletionNotice: `✅ *Pedido Pronto para Retirada - #${data.orderId.slice(
-      0,
-      8
-    )}*
-
-Olá ${data.customerName}!
-
-Seu pedido está pronto! 
-
-Pode vir buscar quando quiser.
-
-Te esperamos! 😊`,
-  };
+  console.log(`📤 Preparando envio de notificação:`);
+  console.log(`   ContentSid: ${contentSid}`);
+  console.log(`   Variables:`, JSON.stringify(contentVariables, null, 2));
 
   try {
-    const response = await fetch("/api/twilio/send-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: phone,
-        message: messages[type],
-      }),
+    // 3. Chamar o Twilio diretamente
+    const result = await sendWhatsAppTemplate({
+      to: phone,
+      contentSid,
+      contentVariables,
     });
 
-    if (!response.ok) {
-      throw new Error("Falha ao enviar notificação");
-    }
-
-    console.log(`✅ Notificação ${type} enviada para ${phone}`);
-    return await response.json();
+    console.log(`✅ Template notification '${type}' sent to ${phone}`);
+    console.log(`✅ Result:`, JSON.stringify(result, null, 2));
+    console.log(`========== FIM DO ENVIO DE NOTIFICAÇÃO ==========\n`);
+    return result;
   } catch (error) {
-    console.error(`❌ Erro ao enviar ${type}:`, error);
+    console.error(`❌ Error sending template '${type}':`, error);
+    if (error instanceof Error) {
+      console.error(`❌ Error message:`, error.message);
+    }
+    console.log(`========== ERRO NO ENVIO DE NOTIFICAÇÃO ==========\n`);
     return null;
   }
 }
 
-// Função auxiliar para calcular tempo estimado
 export function calculateEstimatedTime(
   orderType: "ENTREGA" | "RETIRADA"
 ): string {
   return orderType === "ENTREGA" ? "40-50 minutos" : "20-30 minutos";
 }
 
-// Estatísticas de economia
 export function calculateMonthlySavings(
   monthlyOrders: number,
   currentConfig: NotificationConfig = DEFAULT_CONFIG
@@ -126,13 +140,11 @@ export function calculateMonthlySavings(
   costWithConfig: number;
   savings: number;
 } {
-  const MESSAGE_COST = 0.005; // USD por mensagem
+  const MESSAGE_COST = 0.005;
 
-  // Cenário: todas notificações ativas
-  const messagesWithAll = monthlyOrders * 4; // confirmação + preparo + entrega + conclusão
+  const messagesWithAll = monthlyOrders * 4;
   const costWithAll = messagesWithAll * MESSAGE_COST;
 
-  // Cenário: config otimizada
   let messagesPerOrder = 0;
   if (currentConfig.sendOrderConfirmation) messagesPerOrder++;
   if (currentConfig.sendPreparationNotice) messagesPerOrder++;
@@ -150,7 +162,3 @@ export function calculateMonthlySavings(
     savings: costWithAll - costWithConfig,
   };
 }
-
-// Exemplo de uso:
-// const stats = calculateMonthlySavings(3000); // 3000 pedidos/mês
-// console.log(`Economia mensal: $${stats.savings.toFixed(2)}`);

@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "next": "14.2.5",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "@supabase/supabase-js": "^2.39.0",
     "@supabase/ssr": "^0.5.1",
     "twilio": "^4.20.0",
@@ -32,7 +32,7 @@
     "@types/react-dom": "^19",
     "@types/qrcode": "^1.5.5",
     "eslint": "^9",
-    "eslint-config-next": "14.2.5",
+    "eslint-config-next": "^15.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

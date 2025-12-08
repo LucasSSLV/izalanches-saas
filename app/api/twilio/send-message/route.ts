@@ -1,197 +1,125 @@
 // app/api/twilio/send-message/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import twilio from "twilio";
 
 /**
- * Formata um número de telefone brasileiro para o padrão E.164 para uso com o WhatsApp.
- * - Remove tudo que não é número
- * - Garante que tenha código do país +55
- * - Não adiciona dígito 9 se já tiver 11 dígitos (celular)
+ * Formata um número de telefone para o padrão E.164 para WhatsApp (`whatsapp:+55...`).
+ * - Remove caracteres não numéricos.
+ * - Garante que o código do país (+55) esteja presente.
  */
-function formatBrazilianPhone(phone: string): string {
-  console.log(`[formatBrazilianPhone] Entrada original: "${phone}"`);
-
-  // Remove tudo que não é número
+function formatPhoneForWhatsApp(phone: string): string {
+  console.log(`[formatPhoneForWhatsApp] Entrada: "${phone}"`);
   const cleanPhone = phone.replace(/\D/g, "");
-  console.log(
-    `[formatBrazilianPhone] Número limpo: ${cleanPhone} (Tamanho: ${cleanPhone.length})`
-  );
 
-  let nationalNumber = cleanPhone;
-
-  // Remove o código do país '55' se já estiver presente
-  if (nationalNumber.startsWith("55") && nationalNumber.length > 11) {
-    nationalNumber = nationalNumber.substring(2);
-  }
-
-  // Se o número nacional tem 11 dígitos (DDD + 9 + número) e o 3º dígito é '9', remove o '9'
-  if (nationalNumber.length === 11 && nationalNumber.charAt(2) === '9') {
-    const ddd = nationalNumber.substring(0, 2);
-    const numberWithout9 = nationalNumber.substring(3);
-    nationalNumber = ddd + numberWithout9;
-    console.log(`[formatBrazilianPhone] Nono dígito removido. Novo número nacional: ${nationalNumber}`);
-  }
-
-  // Validar DDD
-  const ddd = nationalNumber.substring(0, 2);
-  const validDDDs = [
-    "11",
-    "12",
-    "13",
-    "14",
-    "15",
-    "16",
-    "17",
-    "18",
-    "19",
-    "21",
-    "22",
-    "24",
-    "27",
-    "28",
-    "31",
-    "32",
-    "33",
-    "34",
-    "35",
-    "37",
-    "38",
-    "41",
-    "42",
-    "43",
-    "44",
-    "45",
-    "46",
-    "47",
-    "48",
-    "49",
-    "51",
-    "53",
-    "54",
-    "55",
-    "61",
-    "62",
-    "63",
-    "64",
-    "65",
-    "66",
-    "67",
-    "68",
-    "69",
-    "71",
-    "73",
-    "74",
-    "75",
-    "77",
-    "79",
-    "81",
-    "82",
-    "83",
-    "84",
-    "85",
-    "86",
-    "87",
-    "88",
-    "89",
-    "91",
-    "92",
-    "93",
-    "94",
-    "95",
-    "96",
-    "97",
-    "98",
-    "99",
-  ];
-
-  if (!validDDDs.includes(ddd)) {
-    console.warn(`[formatBrazilianPhone] ⚠️ DDD "${ddd}" não é válido!`);
-  }
-
-  // Validar tamanho
-  // 10 dígitos = fixo (DDD + 8 dígitos)
-  if (nationalNumber.length !== 10) {
-    console.warn(
-      `[formatBrazilianPhone] ⚠️ Número final tem ${nationalNumber.length} dígitos. Esperado: 10 (DDD + 8 dígitos)`
+  // Se o número já inclui o código do país (55) e tem 12 ou 13 dígitos (55 + DDD + 8 ou 9 dígitos), usamos ele.
+  if (cleanPhone.startsWith("55") && [12, 13].includes(cleanPhone.length)) {
+    const finalNumber = `whatsapp:+${cleanPhone}`;
+    console.log(
+      `[formatPhoneForWhatsApp] ✅ Número já formatado: ${finalNumber}`
     );
+    return finalNumber;
   }
 
-  // A lógica anterior que avisava sobre celulares antigos foi removida,
-  // pois agora estamos forçando o formato de 10 dígitos.
+  // Se for um número local (10 ou 11 dígitos: DDD + 8 ou 9), adicionamos o +55.
+  if ([10, 11].includes(cleanPhone.length)) {
+    const finalNumber = `whatsapp:+55${cleanPhone}`;
+    console.log(`[formatPhoneForWhatsApp] ✅ Número formatado: ${finalNumber}`);
+    return finalNumber;
+  }
 
-  const result = `whatsapp:+55${nationalNumber}`;
-  console.log(`[formatBrazilianPhone] ✅ Número final: ${result}`);
-  return result;
+  console.warn(
+    `[formatPhoneForWhatsApp] ⚠️ Número com formato inesperado: ${cleanPhone}`
+  );
+  // Retorna o número com a melhor tentativa de formatação.
+  return `whatsapp:+55${cleanPhone}`;
 }
 
 export async function POST(request: NextRequest) {
   console.log("📱 API /api/twilio/send-message chamada!");
 
+  // Aceita tanto `message` (formato livre) quanto `template`
+  const { to, message, template } = await request.json();
+  console.log("📦 Dados recebidos:", {
+    to,
+    message: message ? message.slice(0, 50) + "..." : undefined,
+    template: template,
+  });
+
+  if (!to || (!message && !template)) {
+    console.error("❌ Validação falhou: faltam campos obrigatórios");
+    return NextResponse.json(
+      { error: 'O campo "to" e "message" ou "template" são obrigatórios' },
+      { status: 400 }
+    );
+  }
+
+  if (template && (!template.contentSid || !template.contentVariables)) {
+    console.error("❌ Validação falhou: template incompleto", template);
+    return NextResponse.json(
+      {
+        error:
+          'Para usar um template, "contentSid" e "contentVariables" são obrigatórios',
+      },
+      { status: 400 }
+    );
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM;
+
+  console.log("🔑 Verificando variáveis de ambiente:");
+  console.log(
+    "   - TWILIO_ACCOUNT_SID:",
+    accountSid ? "✅ Definido" : "❌ Ausente"
+  );
+  console.log(
+    "   - TWILIO_AUTH_TOKEN:",
+    authToken ? "✅ Definido" : "❌ Ausente"
+  );
+  console.log("   - TWILIO_WHATSAPP_FROM:", whatsappFrom || "❌ Ausente");
+
+  if (!accountSid || !authToken || !whatsappFrom) {
+    console.error("❌ Variáveis de ambiente Twilio não configuradas!");
+    return NextResponse.json(
+      { error: "Configuração do Twilio ausente no servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
-    const { to, message } = await request.json();
-    console.log("📦 Dados recebidos:", {
-      to,
-      message: message.slice(0, 50) + "...",
-    });
-
-    // Validação
-    if (!to || !message) {
-      console.log("❌ Validação falhou: campos obrigatórios ausentes");
-      return NextResponse.json(
-        { error: 'Campos "to" e "message" são obrigatórios' },
-        { status: 400 }
-      );
-    }
-
-    // Verificar variáveis de ambiente
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM;
-
-    if (!accountSid || !authToken || !whatsappFrom) {
-      console.error("❌ Variáveis de ambiente Twilio não configuradas!");
-      console.log(
-        "TWILIO_ACCOUNT_SID:",
-        accountSid ? "✅ Configurado" : "❌ Ausente"
-      );
-      console.log(
-        "TWILIO_AUTH_TOKEN:",
-        authToken ? "✅ Configurado" : "❌ Ausente"
-      );
-      console.log(
-        "TWILIO_WHATSAPP_FROM:",
-        whatsappFrom ? "✅ Configurado" : "❌ Ausente"
-      );
-
-      return NextResponse.json(
-        {
-          error: "Configuração do Twilio ausente",
-          details: "Verifique as variáveis de ambiente no .env.local",
-        },
-        { status: 500 }
-      );
-    }
-
-    console.log("✅ Variáveis de ambiente OK");
-    console.log("📞 Número recebido:", to);
-    console.log("📤 De:", whatsappFrom);
-
-    // Formatar número de destino
-    const toNumber = formatBrazilianPhone(to);
-
-    // Importar Twilio dinamicamente (apenas no servidor)
-    const twilio = (await import("twilio")).default;
     const client = twilio(accountSid, authToken);
+    const toNumber = formatPhoneForWhatsApp(to);
 
-    console.log("🚀 Enviando mensagem via Twilio...");
-    console.log("   From:", whatsappFrom);
-    console.log("   To:", toNumber);
-
-    // Enviar mensagem
-    const result = await client.messages.create({
+    // Monta o payload da mensagem
+    const messagePayload: any = {
       from: whatsappFrom,
       to: toNumber,
-      body: message,
-    });
+    };
+
+    if (template) {
+      // Usa o Message Template
+      messagePayload.contentSid = template.contentSid;
+      messagePayload.contentVariables = JSON.stringify(
+        template.contentVariables
+      );
+
+      console.log("🚀 Enviando MENSAGEM DE TEMPLATE via Twilio...");
+      console.log(
+        "   📋 Payload completo:",
+        JSON.stringify(messagePayload, null, 2)
+      );
+    } else {
+      // Usa a mensagem de formato livre
+      messagePayload.body = message;
+      console.log("🚀 Enviando MENSAGEM DE FORMATO LIVRE via Twilio...");
+      console.log(
+        "   📋 Payload completo:",
+        JSON.stringify(messagePayload, null, 2)
+      );
+    }
+
+    const result = await client.messages.create(messagePayload);
 
     console.log("✅ Mensagem enviada com sucesso!");
     console.log("📊 SID:", result.sid);
@@ -203,31 +131,43 @@ export async function POST(request: NextRequest) {
       status: result.status,
     });
   } catch (error: any) {
-    console.error("❌ Erro ao enviar mensagem WhatsApp:", error);
-    console.error("❌ Código do erro:", error.code);
-    console.error("❌ Mensagem do erro:", error.message);
+    console.error("❌ Erro ao enviar mensagem WhatsApp:");
+    console.error("   📛 Mensagem:", error.message);
+    console.error("   🔢 Código:", error.code);
+    console.error("   📄 Status:", error.status);
+    console.error("   🔗 More Info:", error.moreInfo);
+    console.error("   📦 Detalhes completos:", JSON.stringify(error, null, 2));
 
-    // Erros comuns do Twilio
+    let userMessage = "Falha ao enviar mensagem WhatsApp.";
+
     if (error.code === 21211) {
+      userMessage =
+        "Número de telefone inválido. Verifique se está correto e tente novamente.";
       console.error(
-        "❌ ERRO: Número inválido ou não está no WhatsApp Sandbox!"
-      );
-      console.error(
-        "   Solução: Envie 'join <código>' para o número do Twilio no WhatsApp"
+        "   💡 Solução: O número de destino provavelmente não é um número de WhatsApp válido."
       );
     } else if (error.code === 63016) {
-      console.error("❌ ERRO: Número não verificado no Twilio!");
+      userMessage =
+        "Falha ao enviar. Fora da janela de 24h para mensagens de formato livre. Use um Message Template.";
       console.error(
-        "   Solução: Adicione o número na lista de verified numbers"
+        "   💡 Solução: O destinatário não interage há mais de 24h. É necessário usar um Message Template aprovado."
       );
-    } else if (error.code === 21608) {
-      console.error("❌ ERRO: Número não pode receber SMS/WhatsApp!");
+    } else if (error.code === 63007) {
+      userMessage = "Template não encontrado ou não aprovado.";
+      console.error(
+        "   💡 Solução: Verifique se o ContentSID está correto e se o template foi aprovado no Twilio Console."
+      );
+    } else if (error.code === 63008) {
+      userMessage = "Variáveis do template não correspondem ao esperado.";
+      console.error(
+        "   💡 Solução: Verifique se as variáveis enviadas correspondem às definidas no template."
+      );
     }
 
     return NextResponse.json(
       {
-        error: "Falha ao enviar mensagem WhatsApp",
-        details: error.message || "Erro desconhecido",
+        error: userMessage,
+        details: error.message,
         code: error.code,
         moreInfo: error.moreInfo,
       },
@@ -236,23 +176,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Método GET para testar se API está ativa
 export async function GET() {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM;
-
   return NextResponse.json({
     message: "API de envio WhatsApp está ativa",
-    configured: {
-      accountSid: !!accountSid,
-      authToken: !!authToken,
-      whatsappFrom: !!whatsappFrom,
-    },
-    method: "Use POST para enviar mensagens",
-    example: {
-      to: "8881725648",
-      message: "Sua mensagem aqui",
-    },
+    configured: !!(
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_WHATSAPP_FROM
+    ),
+    method: "Use POST para enviar mensagens.",
   });
 }

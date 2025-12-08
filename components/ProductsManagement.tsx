@@ -49,27 +49,84 @@ export default function ProductsManagement() {
     }
   }
 
+  // async function handleSubmit(e: React.FormEvent) {
+  //   e.preventDefault();
+
+  //   let imageUrl = editingProduct?.image_url || null;
+
+  //   // Upload de imagem se houver
+  //   if (formData.image) {
+  //     const fileExt = formData.image.name.split('.').pop();
+  //     const fileName = `${Date.now()}.${fileExt}`;
+  //     const { data: uploadData, error: uploadError } = await supabase.storage
+  //       .from('products')
+  //       .upload(fileName, formData.image);
+
+  //     if (uploadData) {
+  //       const { data: urlData } = supabase.storage
+  //         .from('products')
+  //         .getPublicUrl(fileName);
+  //       imageUrl = urlData.publicUrl;
+  //     }
+  //   }
+
+  //   const productData = {
+  //     name: formData.name,
+  //     description: formData.description || null,
+  //     price: parseFloat(formData.price),
+  //     category_id: formData.category_id,
+  //     available: formData.available,
+  //     image_url: imageUrl,
+  //   };
+
+  //   if (editingProduct) {
+  //     // Atualizar
+  //     const { error } = await supabase
+  //       .from('products')
+  //       .update(productData)
+  //       .eq('id', editingProduct.id);
+  //   } else {
+  //     // Criar
+  //     const { error } = await supabase.from('products').insert(productData);
+  //   }
+
+  //   resetForm();
+  //   loadProducts();
+  // }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     let imageUrl = editingProduct?.image_url || null;
 
-    // Upload de imagem se houver
+    // Upload da imagem
     if (formData.image) {
       const fileExt = formData.image.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(fileName, formData.image);
+      const file = formData.image;
 
-      if (uploadData) {
-        const { data: urlData } = supabase.storage
-          .from('products')
-          .getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("products")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          contentType: file.type,
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Erro no upload:", uploadError);
+        alert("Erro ao enviar imagem.");
+        return;
       }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("products")
+        .getPublicUrl(fileName);
+
+      imageUrl = publicUrlData.publicUrl;
     }
 
+    // Dados do produto
     const productData = {
       name: formData.name,
       description: formData.description || null,
@@ -79,20 +136,26 @@ export default function ProductsManagement() {
       image_url: imageUrl,
     };
 
+    // Criar ou atualizar
     if (editingProduct) {
-      // Atualizar
       const { error } = await supabase
-        .from('products')
+        .from("products")
         .update(productData)
-        .eq('id', editingProduct.id);
+        .eq("id", editingProduct.id);
+
+      if (error) console.error("Erro ao atualizar:", error);
     } else {
-      // Criar
-      const { error } = await supabase.from('products').insert(productData);
+      const { error } = await supabase
+        .from("products")
+        .insert(productData);
+
+      if (error) console.error("Erro ao inserir:", error);
     }
 
     resetForm();
     loadProducts();
   }
+
 
   function resetForm() {
     setFormData({
