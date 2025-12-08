@@ -73,17 +73,16 @@ export default function OrdersKanban() {
         },
         (payload) => {
           console.log('Change received!', payload);
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (payload.eventType === 'UPDATE' && payload.new) {
             const updatedOrderRecord = payload.new as Order;
             
-            // Se o pedido foi arquivado, remove-o da lista.
             if (updatedOrderRecord.is_hidden) {
+              // Remove pedido arquivado da lista
               setOrders((prevOrders) =>
                 prevOrders.filter((order) => order.id !== updatedOrderRecord.id)
               );
             } else {
-              // Caso contrário, atualiza o pedido na lista.
+              // Atualiza pedido na lista
               setOrders((prevOrders) =>
                 prevOrders.map((order) =>
                   order.id === updatedOrderRecord.id
@@ -93,11 +92,8 @@ export default function OrdersKanban() {
               );
             }
           } else if (payload.eventType === 'INSERT') {
-            // Se um novo pedido chegar, recarrega a lista.
+            // Novo pedido - recarrega lista
             loadOrders();
-          } else {
-            // Para outros eventos como DELETE, também recarrega.
-            console.log('Evento não tratado diretamente, recarregando pedidos:', payload.eventType);
           }
         }
       )
@@ -109,7 +105,7 @@ export default function OrdersKanban() {
   function formatOrder(order: any): Order {
     return {
       ...order,
-      is_hidden: order.is_hidden, // Garante que o campo is_hidden seja repassado
+      is_hidden: order.is_hidden,
       items: order.order_items || [],
     };
   }
@@ -148,6 +144,7 @@ export default function OrdersKanban() {
 
     const originalStatus = order.status;
 
+    // Atualiza otimisticamente o estado local
     setOrders((prevOrders) =>
       prevOrders.map((o) =>
         o.id === orderId ? { ...o, status: newStatus } : o
@@ -169,10 +166,10 @@ export default function OrdersKanban() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Falha ao atualizar status do pedido no servidor');
       }
-    } catch (error)
-    {
+    } catch (error) {
       console.error('Erro ao chamar API de atualização de status:', error);
       alert(`Erro ao atualizar status do pedido: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Revertendo alteração.`);
+      // Reverte otimisticamente em caso de erro
       setOrders((prevOrders) =>
         prevOrders.map((o) =>
           o.id === orderId ? { ...o, status: originalStatus } : o
@@ -185,6 +182,26 @@ export default function OrdersKanban() {
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(event.active.id as string);
+  }
+
+  // Função para arquivar um único pedido
+  async function handleArchiveOrder(orderId: string) {
+    const response = await fetch(`/api/orders/${orderId}/archive`, { method: 'POST' });
+    if (!response.ok) {
+      throw new Error('Falha ao arquivar pedido');
+    }
+    // Remove o pedido localmente
+    setOrders(prevOrders => prevOrders.filter(o => o.id !== orderId));
+  }
+
+  // Função para arquivar todos os pedidos concluídos
+  async function handleArchiveAll() {
+    const response = await fetch('/api/orders/archive-all-completed', { method: 'POST' });
+    if (!response.ok) {
+      throw new Error('Falha ao arquivar pedidos');
+    }
+    // Remove todos os pedidos concluídos localmente
+    setOrders(prevOrders => prevOrders.filter(o => o.status !== 'CONCLUIDO'));
   }
 
   function getOrdersByStatus(status: OrderStatus) {
@@ -235,8 +252,12 @@ export default function OrdersKanban() {
               status={status}
               label={STATUS_LABELS[status]}
               color={STATUS_COLORS[status]}
-              orders={getOrdersByStatus(status)}
+              orders={getOrdersByStatus(status).map(order => ({
+                ...order,
+                onArchive: handleArchiveOrder
+              } as any))}
               sendingNotification={sendingNotification}
+              onArchiveAll={status === 'CONCLUIDO' ? handleArchiveAll : undefined}
             />
           ))}
         </div>

@@ -1,7 +1,6 @@
 // components/Column.tsx
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Order, OrderStatus } from '@/types';
@@ -16,11 +15,11 @@ interface ColumnProps {
   label: string;
   color: string;
   sendingNotification: string | null;
+  onArchiveAll?: () => Promise<void>;
 }
 
-export default function Column({ status, orders, label, color, sendingNotification }: ColumnProps) {
+export default function Column({ status, orders, label, color, sendingNotification, onArchiveAll }: ColumnProps) {
   const [isArchivingAll, setIsArchivingAll] = useState(false);
-  const router = useRouter();
   const { setNodeRef } = useDroppable({
     id: status,
   });
@@ -29,17 +28,16 @@ export default function Column({ status, orders, label, color, sendingNotificati
     if (!confirm(`Tem certeza que deseja arquivar todos os ${orders.length} pedidos concluídos?`)) {
       return;
     }
+    
     setIsArchivingAll(true);
     try {
-      await fetch('/api/orders/archive-all-completed', { method: 'POST' });
-      // Força a atualização da UI para garantir que todos os cards sumam.
-      // A atualização em tempo real do Supabase também ajudará.
-      router.refresh();
+      if (onArchiveAll) {
+        await onArchiveAll();
+      }
     } catch (error) {
       console.error("Erro ao arquivar todos os pedidos:", error);
       alert("Não foi possível arquivar todos os pedidos.");
     } finally {
-      // O refresh da página cuidará de resetar o estado.
       setIsArchivingAll(false);
     }
   }
@@ -59,7 +57,7 @@ export default function Column({ status, orders, label, color, sendingNotificati
             <button
               onClick={handleArchiveAll}
               disabled={isArchivingAll}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
             >
               {isArchivingAll ? <Loader2 className="animate-spin" size={14} /> : <Archive size={14} />}
               {isArchivingAll ? 'Arquivando...' : 'Arquivar Todos'}
