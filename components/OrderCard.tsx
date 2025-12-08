@@ -8,18 +8,17 @@ import { Printer, Loader2, Clock, MapPin, CreditCard, Banknote, Archive } from '
 import { printReceipt } from '@/lib/bluetooth/receipt';
 import { Clickable } from './Clickable';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface OrderCardProps {
   order: Order;
   isDragging?: boolean;
   isSendingNotification?: boolean;
+  onArchive?: (orderId: string) => Promise<void>;
 }
 
-export default function OrderCard({ order, isDragging, isSendingNotification }: OrderCardProps) {
+export default function OrderCard({ order, isDragging, isSendingNotification, onArchive }: OrderCardProps) {
   const [printing, setPrinting] = useState(false);
   const [archiving, setArchiving] = useState(false);
-  const router = useRouter();
   
   const {
     attributes,
@@ -48,18 +47,24 @@ export default function OrderCard({ order, isDragging, isSendingNotification }: 
   }
 
   async function handleArchive(e: React.MouseEvent) {
-    e.stopPropagation(); // Impede que o arrastar e soltar comece ao clicar no botão
+    e.stopPropagation();
     setArchiving(true);
     try {
-      await fetch(`/api/orders/${order.id}/archive`, { method: 'POST' });
-      // Força a atualização da página para remover o card.
-      // A atualização em tempo real também deve funcionar, mas isso é uma garantia.
-      router.refresh();
+      if (onArchive) {
+        await onArchive(order.id);
+      } else {
+        // Fallback para chamada direta da API se não houver callback
+        const response = await fetch(`/api/orders/${order.id}/archive`, { method: 'POST' });
+        if (!response.ok) {
+          throw new Error('Falha ao arquivar pedido');
+        }
+      }
     } catch (error) {
       console.error('Erro ao arquivar pedido:', error);
       alert('Não foi possível arquivar o pedido.');
       setArchiving(false);
     }
+    // Não resetamos archiving aqui - o componente será desmontado quando o pedido for removido
   }
 
   const orderAge = Math.floor((Date.now() - new Date(order.created_at).getTime()) / (1000 * 60));
@@ -169,7 +174,7 @@ export default function OrderCard({ order, isDragging, isSendingNotification }: 
             <button
               onClick={handleArchive}
               disabled={archiving}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {archiving ? <Loader2 className="animate-spin" size={14} /> : <Archive size={14} />}
               {archiving ? 'Arquivando...' : 'Arquivar Pedido'}
@@ -177,7 +182,6 @@ export default function OrderCard({ order, isDragging, isSendingNotification }: 
           </Clickable>
         </div>
       )}
-
 
       {/* Indicador de notificação sendo enviada */}
       {isSendingNotification && (
