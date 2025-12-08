@@ -328,9 +328,9 @@ export default function ProductsManagement() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-gray-100 rounded-lg shadow-md overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Nome</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Categoria</th>
