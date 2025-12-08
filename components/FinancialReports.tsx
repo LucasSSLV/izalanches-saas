@@ -139,7 +139,7 @@ export default function FinancialReports({ activeTab }: { activeTab?: string }) 
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                       Data
@@ -166,8 +166,8 @@ export default function FinancialReports({ activeTab }: { activeTab?: string }) 
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div>
-                          <div className="font-medium">{order.customer_name}</div>
-                          <div className="text-gray-500 text-xs">{order.customer_phone}</div>
+                          <div className="font-bold text-purple-800">{order.customer_name}</div>
+                          <div className="font-semibold text-green-400 text-xs">{order.customer_phone}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
@@ -184,7 +184,7 @@ export default function FinancialReports({ activeTab }: { activeTab?: string }) 
                           {order.payment_method}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                      <td className="px-6 py-4 text-sm font-semibold text-red-500">
                         R$ {order.total.toFixed(2)}
                       </td>
                     </tr>
