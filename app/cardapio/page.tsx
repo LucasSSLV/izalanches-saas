@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Product, Category } from '@/types';
 import Image from 'next/image';
-import { ShoppingCart, X, Check, Loader2, AlertCircle, Plus, Minus, Search } from 'lucide-react';
+import { ShoppingCart, X, Check, Loader2, AlertCircle, Plus, Minus, Search, Trash } from 'lucide-react';
 
 export default function CardapioPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -203,10 +203,10 @@ export default function CardapioPage() {
     : products;
 
   const searchedProducts = searchTerm
-    ? filteredProducts.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? filteredProducts.filter(p =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : filteredProducts;
 
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -241,11 +241,11 @@ export default function CardapioPage() {
 
       {/* Modal de Produto */}
       {selectedProduct && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center p-0 md:p-4"
           onClick={() => setSelectedProduct(null)}
         >
-          <div 
+          <div
             className="bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300"
             onClick={(e) => e.stopPropagation()}
           >
@@ -265,13 +265,13 @@ export default function CardapioPage() {
                 </button>
               </div>
             )}
-            
+
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedProduct.name}</h2>
               {selectedProduct.description && (
                 <p className="text-gray-600 mb-4">{selectedProduct.description}</p>
               )}
-              
+
               <div className="flex items-center justify-between mb-6">
                 <span className="text-3xl font-bold text-green-600">
                   R$ {selectedProduct.price.toFixed(2)}
@@ -292,28 +292,30 @@ export default function CardapioPage() {
       {/* Carrinho Lateral */}
       {showCart && (
         <>
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setShowCart(false)}
           />
-          <div className="fixed right-0 top-0 h-full w-full md:w-[480px] bg-white z-50 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
-            <div className="sticky top-0 bg-white border-b z-10 p-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Seu Carrinho</h2>
+          <div className="fixed right-0 top-0 h-full w-full md:w-[480px] bg-gray-200 z-50 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
+            <div className="sticky top-0 bg-gray-100 backdrop-blur-2xl border-b z-10 p-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-red-500">Seu Carrinho</h2>
               <button
                 onClick={() => setShowCart(false)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-600 transition-colors"
               >
-                <X size={24} />
+                <X size={24} color='red' />
               </button>
             </div>
 
             {cart.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-4">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <ShoppingCart className="text-gray-400" size={48} />
+              <div className="flex flex-col items-center justify-center py-20 px-4"
+                // style={{ backgroundImage: 'url(/sem-pedidos.png)', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', objectFit: 'cover', backgroundSize: '500px' }}
+                >
+                <div className="w-24 h-24 bg-orange-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                  <ShoppingCart className="text-gray-600" size={48} />
                 </div>
-                <p className="text-gray-900 font-semibold text-lg mb-2">Seu carrinho está vazio</p>
-                <p className="text-gray-500 text-center">Adicione produtos para continuar</p>
+                <p className="text-gray-700 font-semibold text-lg mb-2">Seu carrinho está vazio</p>
+                <p className="text-gray-600 text-center">Adicione um produto para visualizar aqui</p>
               </div>
             ) : (
               <form onSubmit={handleSubmitOrder} className="p-4 space-y-6">
@@ -334,22 +336,22 @@ export default function CardapioPage() {
                       )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-gray-900 truncate">{item.product.name}</h4>
-                        <p className="text-sm text-gray-600">R$ {item.product.price.toFixed(2)}</p>
-                        
+                        <p className="text-sm text-green-600">R$ {item.product.price.toFixed(2)}</p>
+
                         <div className="flex items-center gap-3 mt-2">
                           <div className="flex items-center gap-2 bg-white rounded-lg border">
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                              className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-l-lg"
+                              className="w-8 h-8 flex items-center justify-center text-black hover:bg-red-600 rounded-l-lg"
                             >
                               <Minus size={16} />
                             </button>
-                            <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                            <span className="w-8 text-center text-gray-500 font-semibold">{item.quantity}</span>
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-r-lg"
+                              className="w-8 h-8 flex items-center justify-center text-black hover:bg-green-600 rounded-r-lg"
                             >
                               <Plus size={16} />
                             </button>
@@ -357,14 +359,15 @@ export default function CardapioPage() {
                           <button
                             type="button"
                             onClick={() => removeFromCart(item.product.id)}
-                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                            className="flex items-center gap-2 text-red-500 rounded-2xl p-2 shadow-xs hover:shadow-lg transition-colors"
                           >
-                            Remover
+                            <Trash size={16}/>
+                            <p>Remover</p>
                           </button>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">
+                        <p className="font-bold text-green-600">
                           R$ {(item.product.price * item.quantity).toFixed(2)}
                         </p>
                       </div>
@@ -393,16 +396,16 @@ export default function CardapioPage() {
                 {/* Formulário */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-gray-900">Seus dados</h3>
-                  
+
                   <input
                     type="text"
                     placeholder="Nome completo"
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                    className="w-full px-4 py-3 placeholder:text-gray-400 text-gray-600 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none transition-all"
                   />
-                  
+
                   <input
                     type="tel"
                     placeholder="Telefone (11) 99999-9999"
@@ -410,15 +413,16 @@ export default function CardapioPage() {
                     onChange={e => setCustomerPhone(formatPhone(e.target.value))}
                     required
                     maxLength={15}
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                    className="w-full px-4 py-3 placeholder:text-gray-400 text-gray-600 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none transition-all"
                   />
-                  
+
                   <textarea
-                    placeholder="Endereço de entrega (opcional)"
+                    placeholder="Ex: Rua das Flores, 123, casa da Maria"
                     value={customerAddress}
                     onChange={e => setCustomerAddress(e.target.value)}
+                    required
                     rows={2}
-                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none transition-all"
+                    className="w-full px-4 py-3 placeholder:text-gray-400 text-gray-600 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none resize-none transition-all"
                   />
 
                   <div>
@@ -427,22 +431,20 @@ export default function CardapioPage() {
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('PIX')}
-                        className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                          paymentMethod === 'PIX'
+                        className={`px-4 py-3 rounded-xl font-medium transition-all ${paymentMethod === 'PIX'
                             ? 'bg-green-600 text-white shadow-lg scale-105'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                          }`}
                       >
                         PIX
                       </button>
                       <button
                         type="button"
                         onClick={() => setPaymentMethod('DINHEIRO')}
-                        className={`px-4 py-3 rounded-xl font-medium transition-all ${
-                          paymentMethod === 'DINHEIRO'
+                        className={`px-4 py-3 rounded-xl font-medium transition-all ${paymentMethod === 'DINHEIRO'
                             ? 'bg-blue-600 text-white shadow-lg scale-105'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
+                          }`}
                       >
                         Dinheiro
                       </button>
@@ -458,7 +460,7 @@ export default function CardapioPage() {
                         placeholder="Ex: 50.00"
                         value={changeAmount}
                         onChange={e => setChangeAmount(e.target.value)}
-                        className="w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                        className="placeholder:text-gray-400 w-full px-4 py-3 border-2 text-green-700 font-bold border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-400 outline-none transition-all"
                       />
                     </div>
                   )}
@@ -504,9 +506,8 @@ export default function CardapioPage() {
       <header className="bg-white sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
+            <div className="flex flex-col items-center">
               <h1 className="text-2xl md:text-3xl font-bold text-red-500">🍔 Pede Aqui!</h1>
-              <p className="text-sm text-gray-600">Escolha e peça agora</p>
             </div>
             <button
               onClick={() => setShowCart(true)}
@@ -529,7 +530,7 @@ export default function CardapioPage() {
               placeholder="Buscar produtos..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+              className="placeholder-gray-400 text-gray-900 w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-200 outline-none transition-all"
             />
           </div>
         </div>
@@ -539,11 +540,10 @@ export default function CardapioPage() {
           <div className="flex gap-2 min-w-max">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`px-5 py-2 rounded-full whitespace-nowrap font-medium transition-all ${
-                selectedCategory === null
+              className={`px-5 py-2 rounded-full whitespace-nowrap font-medium transition-all ${selectedCategory === null
                   ? 'bg-red-500 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Todos
             </button>
@@ -551,11 +551,10 @@ export default function CardapioPage() {
               <button
                 key={category.id}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`px-5 py-2 rounded-full whitespace-nowrap font-medium transition-all ${
-                  selectedCategory === category.id
+                className={`px-5 py-2 rounded-full whitespace-nowrap font-medium transition-all ${selectedCategory === category.id
                     ? 'bg-red-500 text-white shadow-lg'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {category.name}
               </button>
