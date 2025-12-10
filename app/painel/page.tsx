@@ -8,11 +8,12 @@ import { useRouter } from 'next/navigation';
 import OrdersKanban from '@/components/OrdersKanban';
 import ProductsManagement from '@/components/ProductsManagement';
 import FinancialReports from '@/components/FinancialReports';
+import LeadsManagement from '@/components/LeadsManagement';
 import { Config } from 'twilio/lib/twiml/VoiceResponse';
 import ConfiguracoesPage from './configuracoes/page';
 import { Cog, GalleryHorizontal, X } from 'lucide-react';
 
-type Tab = 'pedidos' | 'produtos' | 'relatorios';
+type Tab = 'pedidos' | 'produtos' | 'relatorios' | 'leads';
 
 export default function PainelPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pedidos');
@@ -35,7 +36,7 @@ export default function PainelPage() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/page.tsx');
   }
 
   if (!user) {
@@ -81,7 +82,7 @@ export default function PainelPage() {
               onClick={() => setActiveTab('pedidos')}
               className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'pedidos'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-100 hover:text-gray-900'
+                : 'border-transparent text-gray-100 hover:text-green-300'
                 }`}
             >
               Pedidos
@@ -90,7 +91,7 @@ export default function PainelPage() {
               onClick={() => setActiveTab('produtos')}
               className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'produtos'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-100 hover:text-gray-900'
+                : 'border-transparent text-gray-100 hover:text-green-300'
                 }`}
             >
               Produtos
@@ -99,10 +100,19 @@ export default function PainelPage() {
               onClick={() => setActiveTab('relatorios')}
               className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'relatorios'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-100 hover:text-gray-900'
+                : 'border-transparent text-gray-100 hover:text-green-300'
                 }`}
             >
               Relatórios Financeiros
+            </button>
+          <button
+              onClick={() => setActiveTab('leads')}
+              className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'relatorios'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-100 hover:text-green-300'
+                }`}
+            >
+              Leads
             </button>
           </div>
         </div>
@@ -112,6 +122,7 @@ export default function PainelPage() {
         {activeTab === 'pedidos' && <OrdersKanban />}
         {activeTab === 'produtos' && <ProductsManagement />}
         {activeTab === 'relatorios' && <FinancialReports activeTab={activeTab} />}
+        {activeTab === 'leads' && <LeadsManagement />}
       </main>
     </div>
   );
