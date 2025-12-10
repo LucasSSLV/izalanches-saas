@@ -8,6 +8,8 @@ export type OrderStatus =
   | "SAIU_PARA_ENTREGA"
   | "CONCLUIDO";
 
+export type LeadStatus = "NOVO" | "EM_CONTATO" | "CONVERTIDO" | "PERDIDO";
+
 export interface Product {
   id: string;
   name: string;
@@ -44,8 +46,8 @@ export interface Order {
   total: number;
   payment_method: PaymentMethod;
   status: OrderStatus;
-  change_amount?: number; // Para pagamento em dinheiro
-  pix_qr_code?: string; // Para pagamento via PIX
+  change_amount?: number;
+  pix_qr_code?: string;
   created_at: string;
   updated_at: string;
   is_hidden: boolean;
@@ -59,4 +61,17 @@ export interface FinancialReport {
   pix_revenue: number;
   cash_revenue: number;
   orders: Order[];
+}
+
+export interface ContactLead {
+  id: string;
+  name: string;
+  business_name: string;
+  phone: string;
+  email: string;
+  message: string | null;
+  status: LeadStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
