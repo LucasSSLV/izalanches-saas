@@ -48,7 +48,7 @@ export default function PainelPage() {
       <header className="bg-red-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-4xl font-bold text-gray-100">Painel do Atendente</h1>
+            <h1 className="text-4xl font-bold text-gray-100">Painel de Controle</h1>
             <div className="flex items-center gap-4">
               <Link
                 href="/cardapio"

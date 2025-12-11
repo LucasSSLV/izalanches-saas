@@ -378,8 +378,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================================
 -- FIM DA MIGRATION
 -- ============================================================================
-
-COMMENT ON SCHEMA public IS 'Sistema multi-tenant para gestão de lanchonetes (SaaS)';
+-- Esta migração reforça a segurança, garantindo que apenas usuários de tenants ativos possam acessar ou modificar dados.
 
 -- Para aplicar esta migration:
 -- 1. Copie todo este código

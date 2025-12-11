@@ -88,8 +88,14 @@ export default function AdminDashboard() {
             return;
         }
 
-        // TODO: Adicionar verificação se o usuário é admin
-        // Por enquanto, qualquer usuário logado pode acessar
+        const { data: isAdmin, error } = await supabase.rpc('is_admin');
+
+        if (error || !isAdmin) {
+            // Se não for admin, redireciona para o painel de tenant
+            // ou uma página de "acesso negado".
+            router.push('/painel'); 
+            return;
+        }
     }
 
     async function loadData() {
@@ -189,16 +195,38 @@ export default function AdminDashboard() {
         }
     }
 
-    async function updateTenantStatus(tenantId: string, newStatus: string) {
+    async function updateTenantStatus(tenantId: string, newStatus: Tenant['status']) {
+        const statusLabel = STATUS_LABELS[newStatus];
+        const isCancelAction = newStatus === 'CANCELLED';
+        
+        const confirmationText = isCancelAction
+          ? 'Esta ação não pode ser desfeita. Deseja realmente CANCELAR este tenant?'
+          : `Deseja alterar o status para "${statusLabel.toLowerCase()}"?`;
+    
+        if (!confirm(confirmationText)) {
+            loadTenants(); // Recarrega para resetar o <select> caso o usuário cancele.
+            return;
+        }
+    
         const { error } = await supabase
             .from('tenants')
             .update({ status: newStatus })
             .eq('id', tenantId);
-
-        if (!error) {
-            loadTenants();
-            if (selectedTenant?.id === tenantId) {
-                setSelectedTenant(prev => prev ? { ...prev, status: newStatus as any } : null);
+    
+        if (error) {
+            alert(`Erro ao atualizar status: ${error.message}`);
+        } else {
+            alert(`Status atualizado para ${statusLabel}!`);
+        }
+        
+        await loadData();
+    
+        // Se a operação foi no modal, atualiza o estado dele ou fecha.
+        if (selectedTenant?.id === tenantId) {
+            if (newStatus === 'CANCELLED') {
+                setSelectedTenant(null); // Fecha o modal se o tenant for cancelado
+            } else {
+                setSelectedTenant(prev => (prev ? { ...prev, status: newStatus } : null));
             }
         }
     }
