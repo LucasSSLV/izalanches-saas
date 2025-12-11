@@ -29,7 +29,7 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      router.push('/painel');
+      router.push('/admin');
       router.refresh();
     }
   }
