@@ -10,6 +10,12 @@ export type OrderStatus =
 
 export type LeadStatus = "NOVO" | "EM_CONTATO" | "CONVERTIDO" | "PERDIDO";
 
+export type TenantStatus = "PENDING" | "ACTIVE" | "SUSPENDED" | "CANCELLED";
+
+export type TenantPlan = "FREE" | "BASIC" | "PRO" | "ENTERPRISE";
+
+export type UserRole = "OWNER" | "ADMIN" | "MEMBER";
+
 export interface Product {
   id: string;
   name: string;
@@ -20,12 +26,14 @@ export interface Product {
   available: boolean;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
 }
 
 export interface Category {
   id: string;
   name: string;
   created_at: string;
+  tenant_id: string;
 }
 
 export interface OrderItem {
@@ -35,6 +43,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   subtotal: number;
+  tenant_id?: string;
 }
 
 export interface Order {
@@ -51,6 +60,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   is_hidden: boolean;
+  tenant_id: string;
 }
 
 export interface FinancialReport {
@@ -74,4 +84,39 @@ export interface ContactLead {
   notes: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Tenant {
+  id: string;
+  business_name: string;
+  slug: string;
+  owner_name: string;
+  owner_email: string;
+  owner_phone: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip_code: string | null;
+  logo_url: string | null;
+  primary_color: string;
+  whatsapp_number: string | null;
+  status: TenantStatus;
+  plan: TenantPlan;
+  trial_ends_at: string | null;
+  subscription_ends_at: string | null;
+  settings: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  approved_at: string | null;
+  approved_by: string | null;
+}
+
+export interface TenantUser {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  invited_by: string | null;
 }
