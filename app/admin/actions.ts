@@ -24,7 +24,7 @@ export async function approveLeadAndCreateUser(lead: ContactLead) {
 
   try {
     // 1. Gerar um slug único para o novo tenant
-    const { data: slugData, error: slugError } = await supabase.rpc(
+    const { data: slugData, error: slugError } = await adminClient.rpc(
       "generate_unique_slug",
       { business_name: lead.business_name }
     );
