@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
+    AlertCircle,
     Store,
     Users,
     DollarSign,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { approveLeadAndCreateUser } from './actions';
 
 interface Tenant {
     id: string;
@@ -132,52 +134,16 @@ export default function AdminDashboard() {
 
     async function approveLead(lead: ContactLead) {
         if (!confirm(`Aprovar e criar conta para ${lead.business_name}?`)) return;
+        
+        setLoading(true);
+        const result = await approveLeadAndCreateUser(lead);
+        setLoading(false);
 
-        try {
-            // Gerar slug único
-            const slug = lead.business_name
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/(^-|-$)/g, '');
+        alert(result.message);
 
-            // Criar tenant
-            const { data: tenant, error: tenantError } = await supabase
-                .from('tenants')
-                .insert({
-                    business_name: lead.business_name,
-                    slug: slug,
-                    owner_name: lead.name,
-                    owner_email: lead.email,
-                    owner_phone: lead.phone,
-                    status: 'ACTIVE',
-                    plan: 'FREE',
-                    whatsapp_number: lead.phone,
-                })
-                .select()
-                .single();
-
-            if (tenantError) {
-                alert('Erro ao criar tenant: ' + tenantError.message);
-                return;
-            }
-
-            // Atualizar status do lead
-            await supabase
-                .from('contact_leads')
-                .update({ status: 'CONVERTIDO' })
-                .eq('id', lead.id);
-
-            // TODO: Criar usuário e enviar email com credenciais
-
-            alert(`✅ Conta criada com sucesso!\n\nSlug: ${slug}\nEmail: ${lead.email}\n\nEnvie as credenciais de acesso para o cliente.`);
-
+        if (result.success) {
             loadData();
             setSelectedLead(null);
-        } catch (error) {
-            console.error('Erro ao aprovar lead:', error);
-            alert('Erro ao aprovar lead');
         }
     }
 
@@ -195,38 +161,16 @@ export default function AdminDashboard() {
         }
     }
 
-    async function updateTenantStatus(tenantId: string, newStatus: Tenant['status']) {
-        const statusLabel = STATUS_LABELS[newStatus];
-        const isCancelAction = newStatus === 'CANCELLED';
-        
-        const confirmationText = isCancelAction
-          ? 'Esta ação não pode ser desfeita. Deseja realmente CANCELAR este tenant?'
-          : `Deseja alterar o status para "${statusLabel.toLowerCase()}"?`;
-    
-        if (!confirm(confirmationText)) {
-            loadTenants(); // Recarrega para resetar o <select> caso o usuário cancele.
-            return;
-        }
-    
+    async function updateTenantStatus(tenantId: string, newStatus: string) {
         const { error } = await supabase
             .from('tenants')
             .update({ status: newStatus })
             .eq('id', tenantId);
-    
-        if (error) {
-            alert(`Erro ao atualizar status: ${error.message}`);
-        } else {
-            alert(`Status atualizado para ${statusLabel}!`);
-        }
-        
-        await loadData();
-    
-        // Se a operação foi no modal, atualiza o estado dele ou fecha.
-        if (selectedTenant?.id === tenantId) {
-            if (newStatus === 'CANCELLED') {
-                setSelectedTenant(null); // Fecha o modal se o tenant for cancelado
-            } else {
-                setSelectedTenant(prev => (prev ? { ...prev, status: newStatus } : null));
+
+        if (!error) {
+            loadTenants();
+            if (selectedTenant?.id === tenantId) {
+                setSelectedTenant(prev => prev ? { ...prev, status: newStatus as any } : null);
             }
         }
     }
@@ -253,7 +197,9 @@ export default function AdminDashboard() {
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-                    <p className="mt-4 text-gray-600">Carregando painel admin...</p>
+                    <p className="mt-4 text-gray-600">
+                        Carregando...
+                    </p>
                 </div>
             </div>
         );

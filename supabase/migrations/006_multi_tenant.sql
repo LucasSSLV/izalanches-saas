@@ -69,7 +69,10 @@ DECLARE
   counter INTEGER := 0;
 BEGIN
   -- Converter para slug: "Lanchonete do João" -> "lanchonete-do-joao"
-  base_slug := lower(trim(regexp_replace(business_name, '[^a-zA-Z0-9]+', '-', 'g'), '-'));
+  base_slug := lower(trim(regexp_replace(
+    -- Normaliza removendo acentos
+    unaccent(business_name),
+    '[^a-zA-Z0-9]+', '-', 'g'), '-'));
   final_slug := base_slug;
   
   -- Verificar se já existe e adicionar número se necessário

@@ -67,6 +67,17 @@ CREATE POLICY "Public can create contact leads"
   WITH CHECK (true);
 
 -- ============================================================================
+-- 2.3 TABELA tenant_users
+-- ============================================================================
+
+-- Permite que o admin adicione usuários a QUALQUER tenant.
+-- Isso é crucial para o fluxo de aprovação, onde o admin cria o primeiro usuário de um novo tenant.
+DROP POLICY IF EXISTS "Admin can insert tenant users" ON tenant_users;
+CREATE POLICY "Admin can insert tenant users"
+  ON tenant_users FOR INSERT
+  WITH CHECK (is_admin());
+
+-- ============================================================================
 -- FIM DA MIGRATION
 -- ============================================================================
 
