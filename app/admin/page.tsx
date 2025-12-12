@@ -1,5 +1,6 @@
 'use client';
 
+// import {Toast, toast} from 'sonner'
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,8 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { approveLeadAndCreateUser } from './actions';
+import toast from 'react-hot-toast';
+
 
 interface Tenant {
     id: string;
@@ -95,7 +98,7 @@ export default function AdminDashboard() {
         if (error || !isAdmin) {
             // Se não for admin, redireciona para o painel de tenant
             // ou uma página de "acesso negado".
-            router.push('/painel'); 
+            router.push('/painel');
             return;
         }
     }
@@ -134,17 +137,19 @@ export default function AdminDashboard() {
 
     async function approveLead(lead: ContactLead) {
         if (!confirm(`Aprovar e criar conta para ${lead.business_name}?`)) return;
-        
-        setLoading(true);
-        const result = await approveLeadAndCreateUser(lead);
-        setLoading(false);
-
-        alert(result.message);
-
-        if (result.success) {
-            loadData();
-            setSelectedLead(null);
-        }
+        toast.promise(approveLeadAndCreateUser(lead), {
+            loading: `Aprovando ${lead.business_name}...`,
+            success: (result) => {
+                if (result.success) {
+                    loadData();
+                    setSelectedLead(null);
+                    return result.message;
+                } else {
+                    throw new Error(result.message);
+                }
+            },
+            error: (err) => err.message,
+        });
     }
 
     async function rejectLead(lead: ContactLead) {
@@ -154,24 +159,26 @@ export default function AdminDashboard() {
             .from('contact_leads')
             .update({ status: 'PERDIDO' })
             .eq('id', lead.id);
-
-        if (!error) {
-            loadLeads();
+        if (error) {
+            toast.error('Erro ao rejeitar lead: ' + error.message);
+        } else {
+            toast.success('Lead rejeitado com sucesso.');
+            loadData();
             setSelectedLead(null);
         }
     }
-
+    
     async function updateTenantStatus(tenantId: string, newStatus: string) {
         const { error } = await supabase
             .from('tenants')
             .update({ status: newStatus })
             .eq('id', tenantId);
 
-        if (!error) {
-            loadTenants();
-            if (selectedTenant?.id === tenantId) {
-                setSelectedTenant(prev => prev ? { ...prev, status: newStatus as any } : null);
-            }
+        if (error) {
+            toast.error('Erro ao atualizar status: ' + error.message);
+        } else {
+            toast.success('Status atualizado com sucesso!');
+            loadData();
         }
     }
 
@@ -277,8 +284,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('leads')}
                             className={`px-6 py-3 font-semibold transition-colors ${activeTab === 'leads'
-                                    ? 'border-b-2 border-blue-600 text-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             Leads Pendentes ({leads.length})
@@ -286,8 +293,8 @@ export default function AdminDashboard() {
                         <button
                             onClick={() => setActiveTab('tenants')}
                             className={`px-6 py-3 font-semibold transition-colors ${activeTab === 'tenants'
-                                    ? 'border-b-2 border-blue-600 text-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             Todos os Tenants ({tenants.length})
