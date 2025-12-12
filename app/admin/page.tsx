@@ -223,7 +223,7 @@ export default function AdminDashboard() {
                             <p className="text-gray-600">Gestão de tenants e aprovações</p>
                         </div>
                         <button
-                            onClick={() => router.push('/painel')}
+                            onClick={() => router.push('/')}
                             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                         >
                             Voltar ao Painel

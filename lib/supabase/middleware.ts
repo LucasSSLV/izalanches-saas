@@ -47,6 +47,7 @@ export async function updateSession(request: NextRequest) {
       !request.nextUrl.pathname.startsWith('/login') &&
       !request.nextUrl.pathname.startsWith('/entrar') &&
       !request.nextUrl.pathname.startsWith('/cardapio') &&
+      !request.nextUrl.pathname.startsWith('/update-password') &&
       !request.nextUrl.pathname.startsWith('/api')
     ) {
       // no user, potentially respond by redirecting the user to the login page

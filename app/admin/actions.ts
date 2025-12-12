@@ -106,10 +106,18 @@ export async function approveLeadAndCreateUser(lead: ContactLead) {
     }
 
     // 6. Gerar link para definição de senha e enviar e-mail
+    // A URL de redirecionamento DEVE ser absoluta.
+    // Em um ambiente de produção, substitua o localhost pela sua URL de produção.
+    // O ideal é usar uma variável de ambiente, ex: process.env.NEXT_PUBLIC_SITE_URL
+    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/update-password`;
+
     const { data: linkData, error: linkError } =
       await adminClient.auth.admin.generateLink({
         type: "recovery", // Gera um link de recuperação de senha
         email: lead.email,
+        options: {
+          redirectTo,
+        }
       });
 
     if (linkError) {
