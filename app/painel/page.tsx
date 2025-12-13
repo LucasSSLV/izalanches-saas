@@ -13,7 +13,7 @@ import { Config } from 'twilio/lib/twiml/VoiceResponse';
 import ConfiguracoesPage from './configuracoes/page';
 import { Cog, GalleryHorizontal, X } from 'lucide-react';
 
-type Tab = 'pedidos' | 'produtos' | 'relatorios' | 'leads';
+type Tab = 'pedidos' | 'produtos' | 'relatorios';
 
 export default function PainelPage() {
   const [activeTab, setActiveTab] = useState<Tab>('pedidos');
@@ -48,7 +48,7 @@ export default function PainelPage() {
       <header className="bg-red-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-4xl font-bold text-gray-100">Painel do Atendente</h1>
+            <h1 className="text-4xl font-bold text-gray-100">Painel de Controle</h1>
             <div className="flex items-center gap-4">
               <Link
                 href="/cardapio"
@@ -105,7 +105,7 @@ export default function PainelPage() {
             >
               Relatórios Financeiros
             </button>
-          <button
+          {/* <button
               onClick={() => setActiveTab('leads')}
               className={`px-4 py-3 border-b-2 font-extrabold transition-colors ${activeTab === 'relatorios'
                 ? 'border-blue-600 text-blue-600'
@@ -113,7 +113,7 @@ export default function PainelPage() {
                 }`}
             >
               Leads
-            </button>
+            </button> */}
           </div>
         </div>
       </nav>
@@ -122,7 +122,7 @@ export default function PainelPage() {
         {activeTab === 'pedidos' && <OrdersKanban />}
         {activeTab === 'produtos' && <ProductsManagement />}
         {activeTab === 'relatorios' && <FinancialReports activeTab={activeTab} />}
-        {activeTab === 'leads' && <LeadsManagement />}
+        {/* {activeTab === 'leads' && <LeadsManagement />} */}
       </main>
     </div>
   );

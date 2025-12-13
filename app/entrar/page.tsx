@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
-export default function LoginPage() {
+export default function TenantLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      router.push('/admin');
+      router.push('/painel');
       router.refresh();
     }
   }
@@ -37,7 +37,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center " style={{backgroundImage: 'url(/fundo-login.png)', backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center'}}>
       <div className="max-w-md w-full rounded-lg shadow-md p-8 bg-gray-100/90 shadow-gray-800/50">
-        <h1 className="text-4xl text-center font-bold text-red-500 mb-6 shadow-2xl">Pede Aqui!</h1>
+        <h1 className="text-4xl text-center font-bold text-red-500 mb-6 shadow-2xl">Acesse sua conta</h1>
         
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -81,11 +81,10 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Acessando...' : 'Acessar Painel'}
           </button>
         </form>
       </div>
     </div>
   );
 }
-

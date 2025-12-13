@@ -35,16 +35,26 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/cardapio') &&
-    !request.nextUrl.pathname.startsWith('/api')
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    return NextResponse.redirect(url);
+  if (!user) {
+    if (request.nextUrl.pathname.startsWith('/painel')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/entrar';
+      return NextResponse.redirect(url);
+    }
+
+    if (
+      request.nextUrl.pathname !== '/' &&
+      !request.nextUrl.pathname.startsWith('/login') &&
+      !request.nextUrl.pathname.startsWith('/entrar') &&
+      !request.nextUrl.pathname.startsWith('/cardapio') &&
+      !request.nextUrl.pathname.startsWith('/update-password') &&
+      !request.nextUrl.pathname.startsWith('/api')
+    ) {
+      // no user, potentially respond by redirecting the user to the login page
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
